@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react'
 import { removeWidget } from '@/app/actions/widgets'
 import { BookCard1x1, BookCard1x2, BookCard2x1 } from './cards/BookCard'
+import { MovieCard1x1, MovieCard2x1 } from './cards/MovieCard'
+import { MusicCard1x1, MusicCard2x1 } from './cards/MusicCard'
 import AddWidgetSheet from './AddWidgetSheet'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -49,10 +51,18 @@ const COLLECTION_TYPE_LABELS: Record<string, string> = {
 // ─── Card content renderers ───────────────────────────────────────────────────
 
 function renderItemContent(item: Item, size: '1x1' | '1x2' | '2x1') {
-  if (item.type === 'book' || item.type === 'movie' || item.type === 'music') {
+  if (item.type === 'book') {
     if (size === '1x1') return <BookCard1x1 item={item} />
     if (size === '1x2') return <BookCard1x2 item={item} />
     if (size === '2x1') return <BookCard2x1 item={item} />
+  }
+  if (item.type === 'movie') {
+    if (size === '1x1') return <MovieCard1x1 item={item} />
+    if (size === '2x1') return <MovieCard2x1 item={item} />
+  }
+  if (item.type === 'music') {
+    if (size === '1x1') return <MusicCard1x1 item={item} />
+    if (size === '2x1') return <MusicCard2x1 item={item} />
   }
   return (
     <div className="flex flex-col justify-end h-full">

@@ -9,9 +9,9 @@ type Item = {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  'reading': 'bg-green-50 text-green-700',
-  'read': 'bg-stone-100 text-stone-500',
-  'want to read': 'bg-yellow-50 text-yellow-700',
+  'watching': 'bg-green-50 text-green-700',
+  'watched': 'bg-stone-100 text-stone-500',
+  'want to watch': 'bg-yellow-50 text-yellow-700',
   'favorite': 'bg-amber-50 text-amber-700',
 }
 
@@ -27,26 +27,9 @@ function StatusPill({ status }: { status: string | null }) {
 
 const coverShadow = 'drop-shadow(0 4px 12px rgba(0,0,0,0.18))'
 
-// Fixed height, natural width, clipped with rounded corners + drop shadow
-function BookCover({ src, alt, height, maxWidth }: { src: string; alt: string; height: number; maxWidth: number }) {
-  return (
-    <div style={{ clipPath: 'inset(0 round 3px)', flexShrink: 0, filter: coverShadow }}>
-      <Image
-        src={src}
-        alt={alt}
-        width={0}
-        height={0}
-        sizes={`${maxWidth * 2}px`}
-        style={{ height, width: 'auto', maxWidth, display: 'block' }}
-      />
-    </div>
-  )
-}
-
 // ── 1x1 ──────────────────────────────────────────────────────────────────────
-// Two-column grid, both items-end, pb-10 px-7 gap-6 — matches reference
-export function BookCard1x1({ item }: { item: Item }) {
-  const author = item.metadata?.author as string | null
+export function MovieCard1x1({ item }: { item: Item }) {
+  const mediaType = item.metadata?.media_type as string | null
   return (
     <div className="absolute inset-0 grid grid-cols-2 items-end gap-6 p-7">
       {item.image_url && (
@@ -63,38 +46,17 @@ export function BookCard1x1({ item }: { item: Item }) {
       <div>
         <StatusPill status={item.status} />
         <p className="font-serif text-sm font-medium text-stone-900 leading-tight line-clamp-3 mt-1">{item.title}</p>
-        {author && <p className="font-mono text-[9px] text-stone-400 mt-0.5">{author}</p>}
-      </div>
-    </div>
-  )
-}
-
-// ── 1x2 ──────────────────────────────────────────────────────────────────────
-// Cover top, info anchored bottom
-export function BookCard1x2({ item }: { item: Item }) {
-  const author = item.metadata?.author as string | null
-  return (
-    <div className="absolute inset-0 flex flex-col p-4">
-      {item.image_url && (
-        <div className="flex justify-center">
-          <BookCover src={item.image_url} alt={item.title ?? ''} height={220} maxWidth={220} />
-        </div>
-      )}
-      <div className="flex flex-col gap-1 mt-auto">
-        <StatusPill status={item.status} />
-        <p className="font-serif text-base font-medium text-stone-900 leading-tight line-clamp-2">{item.title}</p>
-        {author && <p className="font-mono text-[9px] text-stone-400">{author}</p>}
+        {mediaType && <p className="font-mono text-[9px] text-stone-400 mt-0.5 uppercase">{mediaType}</p>}
       </div>
     </div>
   )
 }
 
 // ── 2x1 ──────────────────────────────────────────────────────────────────────
-export function BookCard2x1({ item }: { item: Item }) {
-  const author = item.metadata?.author as string | null
+export function MovieCard2x1({ item }: { item: Item }) {
+  const year = item.metadata?.release_year as string | null
   return (
     <div className="absolute inset-0 flex">
-      {/* Left half — cover centered */}
       <div className="w-1/2 h-full flex items-center justify-center p-6">
         {item.image_url && (
           <div
@@ -114,11 +76,10 @@ export function BookCard2x1({ item }: { item: Item }) {
           </div>
         )}
       </div>
-      {/* Right half — text at bottom, left-aligned */}
       <div className="w-1/2 h-full flex flex-col items-start justify-end gap-1.5 pb-6 pr-6">
         <StatusPill status={item.status} />
         <p className="font-serif text-2xl font-medium text-stone-900 leading-tight line-clamp-3">{item.title}</p>
-        {author && <p className="font-mono text-[9px] text-stone-400">{author}</p>}
+        {year && <p className="font-mono text-[9px] text-stone-400">{year}</p>}
       </div>
     </div>
   )

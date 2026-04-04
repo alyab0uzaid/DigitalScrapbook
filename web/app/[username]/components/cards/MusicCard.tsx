@@ -57,7 +57,7 @@ export function MusicCard1x1({ item }: { item: Item }) {
         <div className="relative" style={{ width: size, height: size }}>
           {/* Vinyl — same size as cover, fully hidden behind it, slides right on hover */}
           <div
-            className="absolute inset-0 transition-transform duration-500 ease-out group-hover:translate-x-[22%]"
+            className="absolute inset-0 transition-transform duration-300 ease-out group-hover:translate-x-[22%]"
             style={{ zIndex: 0 }}
           >
             <Vinyl size={size} />
@@ -98,7 +98,7 @@ export function MusicCard2x1({ item }: { item: Item }) {
           <div className="relative" style={{ width: size, height: size }}>
             {/* Vinyl — same size as cover, hidden behind, slides right */}
             <div
-              className="absolute inset-0 transition-transform duration-500 ease-out group-hover:translate-x-[22%]"
+              className="absolute inset-0 transition-transform duration-300 ease-out group-hover:translate-x-[22%]"
               style={{ zIndex: 0 }}
             >
               <Vinyl size={size} />

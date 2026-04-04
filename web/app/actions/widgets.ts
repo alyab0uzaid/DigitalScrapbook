@@ -11,7 +11,7 @@ export async function addWidget({
 }: {
   itemId?: string | null
   collectionId?: string | null
-  widgetSize: '1x1' | '1x2' | '2x1'
+  widgetSize: '1x1' | '1x2' | '2x1' | '2x2'
   username: string
 }) {
   const supabase = await createClient()

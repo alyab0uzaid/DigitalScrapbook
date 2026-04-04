@@ -5,9 +5,20 @@ import { removeWidget } from '@/app/actions/widgets'
 import { BookCard1x1, BookCard1x2, BookCard2x1 } from './cards/BookCard'
 import { MovieCard1x1, MovieCard2x1 } from './cards/MovieCard'
 import { MusicCard1x1, MusicCard2x1 } from './cards/MusicCard'
+import { PhotoCard } from './cards/PhotoCard'
+import { LinkCard1x1, LinkCard2x1 } from './cards/LinkCard'
+import { NoteCard1x1, NoteCard1x2, NoteCard2x1 } from './cards/NoteCard'
+import { ItemCard1x1, ItemCard2x1 } from './cards/ItemCard'
+import { MapCard } from './cards/MapCard'
 import AddWidgetSheet from './AddWidgetSheet'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+type PlaceItem = {
+  id: string
+  title: string | null
+  metadata: Record<string, unknown>
+}
 
 type Item = {
   id: string
@@ -16,6 +27,7 @@ type Item = {
   type: string
   status: string | null
   metadata: Record<string, unknown>
+  created_at?: string
 }
 
 type Collection = {
@@ -39,6 +51,7 @@ const SIZE_CLASSES: Record<string, string> = {
   '1x1': 'col-span-1 row-span-1',
   '1x2': 'col-span-1 row-span-2',
   '2x1': 'col-span-2 row-span-1',
+  '2x2': 'col-span-2 row-span-2',
 }
 
 const COLLECTION_TYPE_LABELS: Record<string, string> = {
@@ -64,6 +77,22 @@ function renderItemContent(item: Item, size: '1x1' | '1x2' | '2x1') {
     if (size === '1x1') return <MusicCard1x1 item={item} />
     if (size === '2x1') return <MusicCard2x1 item={item} />
   }
+  if (item.type === 'photo') {
+    return <PhotoCard item={item} />
+  }
+  if (item.type === 'link') {
+    if (size === '1x1') return <LinkCard1x1 item={item} />
+    if (size === '2x1') return <LinkCard2x1 item={item} />
+  }
+  if (item.type === 'item') {
+    if (size === '1x1') return <ItemCard1x1 item={item} />
+    if (size === '2x1') return <ItemCard2x1 item={item} />
+  }
+  if (item.type === 'note') {
+    if (size === '1x1') return <NoteCard1x1 item={item} />
+    if (size === '1x2') return <NoteCard1x2 item={item} />
+    if (size === '2x1') return <NoteCard2x1 item={item} />
+  }
   return (
     <div className="flex flex-col justify-end h-full">
       <p className="font-serif text-sm font-medium text-stone-900 line-clamp-2">{item.title}</p>
@@ -72,7 +101,10 @@ function renderItemContent(item: Item, size: '1x1' | '1x2' | '2x1') {
   )
 }
 
-function renderCollectionContent(col: Collection) {
+function renderCollectionContent(col: Collection, size: string, places: PlaceItem[]) {
+  if (col.type === 'map') {
+    return <MapCard places={places} size={size === '2x2' ? '2x2' : '2x1'} />
+  }
   return (
     <div className="flex flex-col justify-end h-full p-4">
       <p className="font-mono text-[9px] text-stone-400 uppercase tracking-wider mb-1">
@@ -93,18 +125,20 @@ function WidgetCard({
   editMode,
   onRemove,
   removing,
+  places,
 }: {
   widget: Widget
   editMode: boolean
   onRemove: () => void
   removing: boolean
+  places: PlaceItem[]
 }) {
   const sizeClass = SIZE_CLASSES[widget.widget_size] ?? 'col-span-1 row-span-1'
   const size = (widget.widget_size as '1x1' | '1x2' | '2x1') || '1x1'
 
   return (
     <div
-      className={`${sizeClass} group relative bg-white rounded-[14px] border border-[#e0ddd8] overflow-hidden transition ${
+      className={`${sizeClass} group relative bg-stone-50 rounded-lg overflow-hidden transition hover:bg-stone-100 ${
         editMode ? 'ring-2 ring-stone-200' : ''
       }`}
     >
@@ -120,7 +154,7 @@ function WidgetCard({
         {widget.item
           ? renderItemContent(widget.item, size)
           : widget.collection
-          ? renderCollectionContent(widget.collection)
+          ? renderCollectionContent(widget.collection, widget.widget_size, places)
           : null}
       </div>
 
@@ -146,12 +180,14 @@ export default function ProfileGrid({
   isOwner,
   collections,
   items,
+  places,
 }: {
   widgets: Widget[]
   username: string
   isOwner: boolean
   collections: { id: string; name: string; type: string }[]
   items: { id: string; title: string | null; type: string; image_url: string | null; status: string | null }[]
+  places: PlaceItem[]
 }) {
   const [editMode, setEditMode] = useState(false)
   const [showAddSheet, setShowAddSheet] = useState(false)
@@ -211,6 +247,7 @@ export default function ProfileGrid({
             editMode={editMode}
             onRemove={() => handleRemove(widget.id)}
             removing={removingId === widget.id}
+            places={places}
           />
         ))}
 

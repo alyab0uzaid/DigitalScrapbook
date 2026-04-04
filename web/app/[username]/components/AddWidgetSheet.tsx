@@ -18,12 +18,13 @@ type Item = {
   status: string | null
 }
 
-type WidgetSize = '1x1' | '1x2' | '2x1'
+type WidgetSize = '1x1' | '1x2' | '2x1' | '2x2'
 
-const SIZE_OPTIONS: { value: WidgetSize; label: string; cols: number; rows: number }[] = [
-  { value: '1x1', label: '1×1', cols: 1, rows: 1 },
-  { value: '2x1', label: '2×1', cols: 2, rows: 1 },
-  { value: '1x2', label: '1×2', cols: 1, rows: 2 },
+const SIZE_OPTIONS: { value: WidgetSize; label: string }[] = [
+  { value: '1x1', label: '1×1' },
+  { value: '2x1', label: '2×1' },
+  { value: '1x2', label: '1×2' },
+  { value: '2x2', label: '2×2' },
 ]
 
 export default function AddWidgetSheet({
@@ -141,10 +142,10 @@ export default function AddWidgetSheet({
             {/* Items */}
             {tab === 'items' && (
               <div className="flex flex-col gap-2 max-h-52 overflow-y-auto mb-5">
-                {items.length === 0 && (
+                {items.filter(item => item.type !== 'place').length === 0 && (
                   <p className="font-mono text-xs text-stone-400 text-center py-6">No items yet.</p>
                 )}
-                {items.map(item => (
+                {items.filter(item => item.type !== 'place').map(item => (
                   <button
                     key={item.id}
                     onClick={() => setSelectedItem(item.id === selectedItem ? null : item.id)}
@@ -173,12 +174,20 @@ export default function AddWidgetSheet({
                 <p className="font-mono text-xs text-stone-500 uppercase tracking-wider mb-2">Widget size</p>
                 <div className="flex gap-2">
                   {SIZE_OPTIONS.filter(s => {
-                    if (!selectedItem) return true // collections allow all sizes
-                    const itemType = items.find(i => i.id === selectedItem)?.type
-                    if (itemType === 'book' || itemType === 'movie' || itemType === 'music') {
-                      return s.value !== '1x2'
+                    if (!selectedItem) {
+                      const colType = collections.find(c => c.id === selectedCollection)?.type
+                      if (colType === 'map') return s.value === '2x1' || s.value === '2x2'
+                      return s.value !== '2x2' // other collections: no 2x2
                     }
-                    return true
+                    const itemType = items.find(i => i.id === selectedItem)?.type
+                    if (itemType === 'photo') return true
+                    if (itemType === 'link') return s.value === '1x1' || s.value === '2x1'
+                    if (itemType === 'note') return s.value !== '2x2'
+                    if (itemType === 'item') return s.value === '1x1' || s.value === '2x1'
+                    if (itemType === 'book' || itemType === 'movie' || itemType === 'music') {
+                      return s.value !== '1x2' && s.value !== '2x2'
+                    }
+                    return s.value !== '2x2'
                   }).map(s => (
                     <button
                       key={s.value}

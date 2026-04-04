@@ -22,12 +22,12 @@ export default async function ProfilePage({
   const { data: { user } } = await supabase.auth.getUser()
   const isOwner = user?.id === profile.id
 
-  const [{ data: widgets }, { data: collections }, { data: items }] = await Promise.all([
+  const [{ data: widgets }, { data: collections }, { data: items }, { data: places }] = await Promise.all([
     supabase
       .from('profile_widgets')
       .select(`
         id, widget_size, widget_title, display_order,
-        item:items(id, title, image_url, type, status, metadata),
+        item:items(id, title, image_url, type, status, metadata, created_at),
         collection:collections(id, name, type, description)
       `)
       .eq('user_id', profile.id)
@@ -46,10 +46,15 @@ export default async function ProfilePage({
           .eq('user_id', profile.id)
           .order('created_at', { ascending: false })
       : Promise.resolve({ data: [] as { id: string; title: string | null; type: string; image_url: string | null; status: string | null }[] }),
+    supabase
+      .from('items')
+      .select('id, title, metadata')
+      .eq('user_id', profile.id)
+      .eq('type', 'place'),
   ])
 
   return (
-    <div className="min-h-screen bg-[#faf9f7]">
+    <div className="min-h-screen bg-white">
       <div className="max-w-5xl mx-auto px-6 py-10">
 
         {/* Profile header */}
@@ -81,11 +86,12 @@ export default async function ProfilePage({
 
         {/* Bento grid */}
         <ProfileGrid
-          widgets={(widgets ?? []) as Parameters<typeof ProfileGrid>[0]['widgets']}
+          widgets={(widgets ?? []) as unknown as Parameters<typeof ProfileGrid>[0]['widgets']}
           username={profile.username}
           isOwner={isOwner}
           collections={collections ?? []}
           items={items ?? []}
+          places={(places ?? []) as { id: string; title: string | null; metadata: Record<string, unknown> }[]}
         />
       </div>
     </div>

@@ -18,11 +18,22 @@ export async function addWidget({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const { data: existing } = await supabase
+    .from('profile_widgets')
+    .select('display_order')
+    .eq('user_id', user.id)
+    .order('display_order', { ascending: false })
+    .limit(1)
+    .single()
+
+  const nextOrder = existing ? (existing.display_order ?? 0) + 1 : 0
+
   const { error } = await supabase.from('profile_widgets').insert({
     user_id: user.id,
     item_id: itemId ?? null,
     collection_id: collectionId ?? null,
     widget_size: widgetSize,
+    display_order: nextOrder,
   })
 
   if (error) return { error: error.message }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { addWidget } from '@/app/actions/widgets'
 
@@ -50,6 +51,7 @@ export default function AddWidgetSheet({
   const [size, setSize] = useState<WidgetSize>('1x1')
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
 
   function handleOpen() {
     setSelectedCollection(null)
@@ -75,7 +77,7 @@ export default function AddWidgetSheet({
         username,
       })
       if (result?.error) setError(result.error)
-      else handleClose()
+      else { handleClose(); router.refresh() }
     })
   }
 

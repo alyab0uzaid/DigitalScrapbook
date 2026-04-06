@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   DndContext,
@@ -250,6 +251,7 @@ export default function ProfileGrid({
   items: { id: string; title: string | null; type: string; image_url: string | null; status: string | null }[]
   places: PlaceItem[]
 }) {
+  const router = useRouter()
   const [editMode, setEditMode] = useState(false)
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [widgets, setWidgets] = useState(initialWidgets)
@@ -324,6 +326,7 @@ export default function ProfileGrid({
       setWidgets(prev => prev.filter(w => w.id !== widgetId))
       committedRef.current = committedRef.current.filter(w => w.id !== widgetId)
       setRemovingId(null)
+      router.refresh()
     })
   }
 

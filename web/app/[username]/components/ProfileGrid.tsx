@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useRef, useCallback } from 'react'
+import { useState, useTransition, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
@@ -253,6 +253,14 @@ export default function ProfileGrid({
 }) {
   const router = useRouter()
   const [editMode, setEditMode] = useState(false)
+
+  // Sync when server pushes fresh props after router.refresh()
+  useEffect(() => {
+    if (!activeId) {
+      setWidgets(initialWidgets)
+      committedRef.current = initialWidgets
+    }
+  }, [initialWidgets])
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [widgets, setWidgets] = useState(initialWidgets)
   const [removingId, setRemovingId] = useState<string | null>(null)

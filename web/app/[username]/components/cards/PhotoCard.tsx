@@ -17,7 +17,7 @@ export function PhotoCard({ item }: { item: Item }) {
           <img
             src={item.image_url}
             alt={item.title ?? ''}
-            className="absolute inset-0 h-full w-full object-cover rounded-[14px] transition-all group-hover:mt-12"
+            className="absolute inset-0 h-full w-full object-cover rounded-lg transition-all group-hover:mt-12"
           />
         )}
 

@@ -23,7 +23,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-stone-50 flex items-center justify-center px-4">
       <div className="text-center">
-        <h1 className="text-3xl font-semibold text-stone-900 tracking-tight mb-3">[APPNAME]</h1>
+        <h1 className="text-3xl font-serif font-semibold text-stone-900 tracking-tight mb-3">Cubbi</h1>
         <p className="text-stone-500 mb-8 max-w-xs mx-auto text-sm leading-relaxed">
           Your personal scrapbook. Books, photos, music, places — everything that makes you, you.
         </p>

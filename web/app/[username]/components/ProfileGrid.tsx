@@ -175,46 +175,58 @@ function SortableWidgetCard({
   }, [widget.id, setNodeRef, onMeasure])
 
   return (
-    // motion.div handles FLIP animation when DOM order changes
+    // Outer div: grid sizing + overflow visible so the delete badge isn't clipped
     <motion.div
       layout={!isDragging}
       transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
       ref={refCallback}
       data-widget-id={widget.id}
-      className={`${sizeClass} group relative bg-stone-50 rounded-lg overflow-hidden ${
-        editMode && !isDraggingAny ? 'hover:bg-stone-100 transition-colors' : ''
-      } ${editMode ? 'ring-2 ring-stone-200' : ''} ${isDragging ? 'opacity-0' : ''}`}
+      className={`${sizeClass} group relative ${isDragging ? 'opacity-0' : ''}`}
     >
-      {/* Drag handle */}
-      {editMode && (
-        <div
-          {...attributes}
-          {...listeners}
-          className="absolute inset-0 z-10 cursor-grab active:cursor-grabbing rounded-lg"
-        />
-      )}
+      {/* Inner card: overflow-hidden for content clipping */}
+      <div className={`absolute inset-0 rounded-lg overflow-hidden bg-stone-50 transition-colors ${
+        !isDraggingAny ? 'hover:bg-stone-100' : ''
+      } ${editMode ? 'ring-2 ring-stone-200' : ''}`}>
 
-      {/* Widget title */}
-      {widget.widget_title && (
-        <p className="relative z-20 font-mono text-[9px] text-stone-400 uppercase tracking-wider p-4 pb-0 truncate pointer-events-none">
-          {widget.widget_title}
-        </p>
-      )}
+        {/* Drag handle */}
+        {editMode && (
+          <div
+            {...attributes}
+            {...listeners}
+            className="absolute inset-0 z-10 cursor-grab active:cursor-grabbing"
+          />
+        )}
 
-      {/* Card content */}
-      <div className="absolute inset-0 pointer-events-none">
-        <CardContent widget={widget} places={places} />
+        {/* Widget title */}
+        {widget.widget_title && (
+          <p className="relative z-20 font-mono text-[9px] text-stone-400 uppercase tracking-wider p-4 pb-0 truncate pointer-events-none">
+            {widget.widget_title}
+          </p>
+        )}
+
+        {/* Card content */}
+        <div className="absolute inset-0 pointer-events-none">
+          <CardContent widget={widget} places={places} />
+        </div>
       </div>
 
-      {/* Remove button */}
+      {/* Remove button — outside overflow-hidden, centered on top-left corner */}
       {editMode && (
         <button
           onPointerDown={e => e.stopPropagation()}
           onClick={e => { e.stopPropagation(); onRemove() }}
           disabled={removing}
-          className="absolute top-2 right-2 z-20 w-6 h-6 rounded-full bg-white border border-red-100 flex items-center justify-center text-red-400 hover:bg-red-50 shadow-sm transition text-xs disabled:opacity-40"
+          className="absolute -top-2.5 -left-2.5 z-20 w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 active:bg-red-700 flex items-center justify-center shadow-md transition-colors disabled:opacity-40"
         >
-          {removing ? '…' : '×'}
+          {removing ? (
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+              <circle cx="4" cy="4" r="3" stroke="white" strokeWidth="1.5" strokeDasharray="6 3" />
+            </svg>
+          ) : (
+            <svg width="8" height="2" viewBox="0 0 8 2" fill="none">
+              <rect x="0" y="0.5" width="8" height="1" rx="0.5" fill="white" />
+            </svg>
+          )}
         </button>
       )}
     </motion.div>

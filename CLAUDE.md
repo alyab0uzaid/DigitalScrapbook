@@ -32,7 +32,7 @@ more personal, more curated, more beautiful by default.
 - One Supabase backend shared by web and mobile. Never split it.
 - No separate API layer for now. Call Supabase directly from the frontend.
 - App Router only. No pages directory.
-- Never hardcode the app name. Use `[APPNAME]` as placeholder everywhere.
+- The app is called **Cubbi**. Domain: `cubbi.me`. Use "Cubbi" everywhere — no more `[APPNAME]` placeholders.
 - `metadata` jsonb on items handles all type-specific fields. Do not create separate tables per content type.
 - RLS always enabled. Users only access their own data unless a profile is public.
 - Never put ads or metrics on profile pages.
@@ -267,7 +267,7 @@ follows (
 - ⬜ Photo upload
 
 **Phase 2 — Public Profiles**
-- yourapp.com/[username] — server rendered, shareable
+- cubbi.me/[username] — server rendered, shareable
 - Profile page works publicly already — collection/item detail pages not yet built
 
 Do not build beyond Phase 2 until told to.
@@ -349,3 +349,6 @@ update profile_widgets set widget_size = '2x1' where widget_size = 'wide';
 - **Build error triage**: When `npm run build` fails on type errors, run `tsc --noEmit` first to see ALL errors at once, identify which are pre-existing vs new, batch-fix same-pattern errors in one pass, then do a single build. Never chase errors one-at-a-time with repeated builds.
 - **`metadata` unknown in JSX conditions**: `Record<string, unknown>` fields can't be used directly in `{x && <JSX>}` — TypeScript rejects `unknown` as ReactNode. Fix: `{(item.metadata?.field as string | null) && ...}`. Apply to all metadata accesses at once, not one at a time.
 - **Next.js 16 config**: `serverActionsBodySizeLimit` moved to `experimental.serverActions.bodySizeLimit`. `@imgly/background-removal` requires `onnxruntime-web@1.21.0` installed explicitly as a peer dep.
+- **dnd-kit in CSS Grid**: Never use CSS transforms for reordering — they fight grid layout. Reorder the DOM array live in `onDragOver` using `setWidgets(prev => arrayMove(...))`. All handlers must have zero `useCallback` deps — use refs (`widgetsRef.current`, `usernameRef.current`) to access current values. `startTransition` in deps causes infinite loops. dnd-kit's `useLayoutEffect` throws if handler references change between renders.
+- **framer-motion `layoutId` vs `layout`**: `layoutId` is for shared element transitions across separate component trees — it creates a ghost copy when used on list items that reorder in place. Use `layout` only (or `layout={!isDragging}`) for FLIP reorder animations.
+- **Don't fix harmless warnings with config changes**: `turbopack.root` set to `__dirname` redirected module resolution outside `/web`, breaking tailwindcss resolution. The duplicate lockfile warning it was meant to silence was harmless.

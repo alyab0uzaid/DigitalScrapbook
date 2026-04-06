@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "[APPNAME]",
+  title: "Cubbi",
   description: "Your corner of the internet.",
 };
 

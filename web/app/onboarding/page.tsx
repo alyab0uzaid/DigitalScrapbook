@@ -56,7 +56,7 @@ export default function OnboardingPage() {
                 Username
               </label>
               <div className="flex items-center rounded-lg border border-stone-200 focus-within:ring-2 focus-within:ring-stone-900 focus-within:border-transparent transition overflow-hidden">
-                <span className="pl-3.5 text-sm text-stone-400 select-none">yourapp.com/</span>
+                <span className="pl-3.5 text-sm text-stone-400 select-none">cubbi.me/</span>
                 <input
                   id="username"
                   name="username"

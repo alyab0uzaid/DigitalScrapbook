@@ -35,19 +35,25 @@ export default function ProfileNav({
   const tabRefs = useRef<(HTMLAnchorElement | null)[]>([])
   const [indicator, setIndicator] = useState({ width: 0, left: 0, opacity: 0 })
   const [showMore, setShowMore] = useState(false)
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
+
+  const activeIdx = mainTabs.findIndex(t => t.href === pathname)
 
   useLayoutEffect(() => {
-    const activeIdx = mainTabs.findIndex(t => t.href === pathname)
-    if (activeIdx >= 0 && tabRefs.current[activeIdx]) {
-      const el = tabRefs.current[activeIdx]!
+    const targetIdx = hoveredIdx ?? activeIdx
+    if (targetIdx >= 0 && tabRefs.current[targetIdx]) {
+      const el = tabRefs.current[targetIdx]!
       setIndicator({ width: el.offsetWidth, left: el.offsetLeft, opacity: 1 })
     } else {
       setIndicator(prev => ({ ...prev, opacity: 0 }))
     }
-  }, [pathname, mainTabs.length])
+  }, [pathname, mainTabs.length, hoveredIdx, activeIdx])
 
   return (
-    <div className="pointer-events-auto relative inline-flex items-center rounded-lg border border-neutral-200 bg-white/70 p-1 shadow-md backdrop-blur-md">
+    <div
+      className="pointer-events-auto relative inline-flex items-center rounded-lg border border-neutral-200 bg-white/70 p-1 shadow-md backdrop-blur-md"
+      onMouseLeave={() => setHoveredIdx(null)}
+    >
       {/* Sliding indicator */}
       <div
         className="absolute top-1 left-0 -z-10 h-7 rounded bg-neutral-200 backdrop-blur"
@@ -64,6 +70,7 @@ export default function ProfileNav({
           key={tab.href}
           href={tab.href}
           ref={el => { tabRefs.current[i] = el }}
+          onMouseEnter={() => setHoveredIdx(i)}
           className={`rounded py-1 px-2 text-sm tracking-tight transition-colors whitespace-nowrap ${
             pathname === tab.href ? 'text-neutral-900' : 'text-neutral-400 hover:text-neutral-900'
           }`}

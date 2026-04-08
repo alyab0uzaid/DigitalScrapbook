@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useRef, useLayoutEffect, useState } from 'react'
+import { logout } from '@/app/actions/auth'
 
 const MAX_VISIBLE = 5
 
@@ -111,7 +112,7 @@ export default function ProfileNav({
         </div>
       )}
 
-      {/* Library — owner-only, always last, visually separated */}
+      {/* Library + logout — owner-only, always last, visually separated */}
       {isOwner && (
         <>
           <span className="w-px h-4 bg-neutral-200 mx-0.5" />
@@ -121,6 +122,15 @@ export default function ProfileNav({
           >
             library
           </Link>
+          <span className="w-px h-4 bg-neutral-200 mx-0.5" />
+          <form action={logout}>
+            <button
+              type="submit"
+              className="rounded py-1 px-2 text-sm tracking-tight text-neutral-300 hover:text-neutral-600 transition-colors whitespace-nowrap"
+            >
+              logout
+            </button>
+          </form>
         </>
       )}
     </div>

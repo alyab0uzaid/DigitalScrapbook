@@ -6,11 +6,13 @@ import { revalidatePath } from 'next/cache'
 export async function addWidget({
   itemId,
   collectionId,
+  itemType,
   widgetSize,
   username,
 }: {
   itemId?: string | null
   collectionId?: string | null
+  itemType?: string | null
   widgetSize: '1x1' | '1x2' | '2x1' | '2x2'
   username: string
 }) {
@@ -32,6 +34,7 @@ export async function addWidget({
     user_id: user.id,
     item_id: itemId ?? null,
     collection_id: collectionId ?? null,
+    item_type: itemType ?? null,
     widget_size: widgetSize,
     display_order: nextOrder,
   })

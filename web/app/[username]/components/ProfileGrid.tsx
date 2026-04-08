@@ -30,6 +30,8 @@ import { LinkCard1x1, LinkCard2x1 } from './cards/LinkCard'
 import { NoteCard1x1, NoteCard1x2, NoteCard2x1 } from './cards/NoteCard'
 import { ItemCard1x1, ItemCard2x1 } from './cards/ItemCard'
 import { MapCard } from './cards/MapCard'
+import { ContentTypeCard1x1, ContentTypeCard1x2, ContentTypeCard2x1 } from './cards/ContentTypeCard'
+import { CollectionCard1x1, CollectionCard2x1 } from './cards/CollectionCard'
 import AddWidgetSheet from './AddWidgetSheet'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -55,12 +57,14 @@ type Collection = {
   name: string
   type: string
   description: string | null
+  collection_items?: { display_order: number; item: { id: string; title: string | null; image_url: string | null; type: string } | null }[]
 }
 
 type Widget = {
   id: string
   widget_size: string
   widget_title: string | null
+  item_type: string | null
   item: Item | null
   collection: Collection | null
 }
@@ -83,10 +87,22 @@ const COLLECTION_TYPE_LABELS: Record<string, string> = {
 
 // ─── Card content ─────────────────────────────────────────────────────────────
 
-function CardContent({ widget, places }: { widget: Widget; places: PlaceItem[] }) {
+function CardContent({ widget, places, items }: {
+  widget: Widget
+  places: PlaceItem[]
+  items: { id: string; title: string | null; type: string; image_url: string | null; status: string | null }[]
+}) {
   const size = (widget.widget_size as '1x1' | '1x2' | '2x1') || '1x1'
   const item = widget.item
   const col = widget.collection
+
+  if (widget.item_type) {
+    const typeItems = items.filter(i => i.type === widget.item_type)
+    if (size === '1x1') return <ContentTypeCard1x1 itemType={widget.item_type} items={typeItems} />
+    if (size === '1x2') return <ContentTypeCard1x2 itemType={widget.item_type} items={typeItems} />
+    if (size === '2x1') return <ContentTypeCard2x1 itemType={widget.item_type} items={typeItems} />
+    return <ContentTypeCard1x1 itemType={widget.item_type} items={typeItems} />
+  }
 
   if (item) {
     if (item.type === 'book') {
@@ -128,17 +144,8 @@ function CardContent({ widget, places }: { widget: Widget; places: PlaceItem[] }
     if (col.type === 'map') {
       return <MapCard places={places} size={widget.widget_size === '2x2' ? '2x2' : '2x1'} />
     }
-    return (
-      <div className="flex flex-col justify-end h-full p-4">
-        <p className="font-mono text-[9px] text-stone-400 uppercase tracking-wider mb-1">
-          {COLLECTION_TYPE_LABELS[col.type] ?? col.type}
-        </p>
-        <p className="font-serif text-base font-semibold text-stone-900 leading-snug">{col.name}</p>
-        {col.description && (
-          <p className="font-mono text-[9px] text-stone-400 mt-0.5 line-clamp-1">{col.description}</p>
-        )}
-      </div>
-    )
+    if (size === '2x1') return <CollectionCard2x1 collection={col} />
+    return <CollectionCard1x1 collection={col} />
   }
 
   return null
@@ -153,6 +160,7 @@ function SortableWidgetCard({
   onRemove,
   removing,
   places,
+  items,
   onMeasure,
 }: {
   widget: Widget
@@ -161,6 +169,7 @@ function SortableWidgetCard({
   onRemove: () => void
   removing: boolean
   places: PlaceItem[]
+  items: { id: string; title: string | null; type: string; image_url: string | null; status: string | null }[]
   onMeasure: (id: string, el: HTMLDivElement | null) => void
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useSortable({
@@ -207,7 +216,7 @@ function SortableWidgetCard({
 
         {/* Card content */}
         <div className="absolute inset-0 pointer-events-none">
-          <CardContent widget={widget} places={places} />
+          <CardContent widget={widget} places={places} items={items} />
         </div>
       </div>
 
@@ -344,12 +353,18 @@ export default function ProfileGrid({
     return (
       <div className="text-center py-24">
         {isOwner ? (
-          <div>
-            <p className="font-serif text-lg text-stone-400 mb-3">Your profile is empty.</p>
+          <div className="flex flex-col items-center gap-4">
+            <p className="font-serif text-lg text-stone-400">Your profile is empty.</p>
+            <button
+              onClick={() => setEditMode(true)}
+              className="rounded-xl bg-stone-900 px-5 py-2.5 font-mono text-xs text-white hover:bg-stone-700 transition"
+            >
+              + Add to profile
+            </button>
             <p className="font-mono text-xs text-stone-400">
-              Add things to your{' '}
+              or add things to your{' '}
               <a href="/library" className="underline underline-offset-2 hover:text-stone-600">library</a>
-              {' '}then pin them here.
+              {' '}first
             </p>
           </div>
         ) : (
@@ -362,16 +377,17 @@ export default function ProfileGrid({
   return (
     <>
       {isOwner && (
-        <div className="flex justify-end mb-4">
+        <div className="mb-4 text-right">
           <button
             onClick={() => { setEditMode(e => !e); setShowAddSheet(false) }}
-            className={`rounded-xl px-4 py-2 font-mono text-xs transition border ${
+            title={editMode ? 'Done editing' : 'Edit profile'}
+            className={`rounded-lg px-3 py-1.5 font-mono text-xs transition ${
               editMode
-                ? 'bg-stone-900 text-white border-stone-900'
-                : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50 shadow-sm'
+                ? 'bg-stone-900 text-white'
+                : 'text-stone-400 hover:text-stone-700 hover:bg-stone-50'
             }`}
           >
-            {editMode ? 'Done' : 'Edit profile'}
+            {editMode ? 'done' : '✏ edit'}
           </button>
         </div>
       )}
@@ -385,7 +401,7 @@ export default function ProfileGrid({
         onDragCancel={handleDragCancel}
       >
         <SortableContext items={widgets.map(w => w.id)} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-4 gap-3 auto-rows-[235px]">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
             {widgets.map(widget => (
               <SortableWidgetCard
                 key={widget.id}
@@ -395,6 +411,7 @@ export default function ProfileGrid({
                 onRemove={() => handleRemove(widget.id)}
                 removing={removingId === widget.id}
                 places={places}
+                items={items}
                 onMeasure={handleMeasure}
               />
             ))}
@@ -417,7 +434,7 @@ export default function ProfileGrid({
               className="relative bg-stone-50 rounded-lg overflow-hidden shadow-2xl ring-2 ring-stone-300"
             >
               <div className="absolute inset-0">
-                <CardContent widget={activeWidget} places={places} />
+                <CardContent widget={activeWidget} places={places} items={items} />
               </div>
             </div>
           )}

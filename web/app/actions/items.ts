@@ -70,6 +70,23 @@ export async function addItemToCollection(itemId: string, collectionId: string, 
   return { success: true }
 }
 
+export async function removeItemFromCollection(itemId: string, collectionId: string, username: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('collection_items')
+    .delete()
+    .eq('item_id', itemId)
+    .eq('collection_id', collectionId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/${username}`)
+  return { success: true }
+}
+
 export async function uploadItemImage(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

@@ -24,7 +24,7 @@ export default async function LibraryPage() {
       .order('created_at', { ascending: false }),
     supabase
       .from('collections')
-      .select('id, name, type, description, created_at')
+      .select('id, name, type, description, is_public, created_at, collection_items(item_id)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
   ])

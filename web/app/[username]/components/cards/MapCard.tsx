@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { feature } from 'topojson-client'
-import { geoNaturalEarth1, geoPath } from 'd3-geo'
+import { geoNaturalEarth1, geoMercator, geoPath, geoCentroid } from 'd3-geo'
 import type { Topology, GeometryCollection } from 'topojson-specification'
 import type { GeoPermissibleObjects } from 'd3-geo'
 
@@ -12,19 +12,17 @@ type Place = {
   metadata: Record<string, unknown>
 }
 
+type GeoFeature = ReturnType<typeof feature>['features'][number]
+
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
-// Card is col-span-2 row-span-1 at 235px row height. Approximate pixel area:
-// 2x1: ~480 × 235 — map fills the full card, no header
-// 2x2: ~480 × 470
-
 const CONFIG = {
-  '2x1': { W: 900, H: 460, scale: 140 },
-  '2x2': { W: 900, H: 900, scale: 165 },
+  '2x1': { W: 900, H: 460, worldScale: 140 },
+  '2x2': { W: 900, H: 900, worldScale: 165 },
 }
 
 export function MapCard({ places, size }: { places: Place[]; size: '2x1' | '2x2' }) {
-  const [countryPaths, setCountryPaths] = useState<string[]>([])
+  const [geoFeatures, setGeoFeatures] = useState<GeoFeature[]>([])
   const [tooltip, setTooltip] = useState<{ city: string; country: string; x: number; y: number } | null>(null)
   const cfg = CONFIG[size]
 
@@ -33,15 +31,14 @@ export function MapCard({ places, size }: { places: Place[]; size: '2x1' | '2x2'
       .then(r => r.json())
       .then((topo: Topology) => {
         const countries = feature(topo, topo.objects.countries as GeometryCollection)
-        const projection = geoNaturalEarth1()
-          .scale(cfg.scale)
-          .translate([cfg.W / 2, cfg.H / 2])
-        const gen = geoPath(projection)
-        const paths = countries.features.map(f => gen(f as GeoPermissibleObjects) ?? '')
-        setCountryPaths(paths)
+        // Filter out Antarctica (centroid below -55° latitude)
+        const filtered = countries.features.filter(
+          f => geoCentroid(f as GeoPermissibleObjects)[1] > -55
+        )
+        setGeoFeatures(filtered)
       })
       .catch(() => {})
-  }, [cfg.W, cfg.H, cfg.scale])
+  }, [])
 
   const pins = useMemo(() => places
     .map(p => ({
@@ -54,39 +51,70 @@ export function MapCard({ places, size }: { places: Place[]; size: '2x1' | '2x2'
     .filter(p => p.lat != null && p.lng != null),
   [places])
 
-  const pinCoords = useMemo(() => {
-    if (!countryPaths.length) return []
-    const projection = geoNaturalEarth1()
-      .scale(cfg.scale)
-      .translate([cfg.W / 2, cfg.H / 2])
-    return pins.map(pin => {
+  const { W, H, worldScale } = cfg
+
+  const { countryPaths, pinCoords } = useMemo(() => {
+    if (!geoFeatures.length) return { countryPaths: [], pinCoords: [] }
+
+    let projection: ReturnType<typeof geoNaturalEarth1> | ReturnType<typeof geoMercator>
+
+    if (pins.length === 0) {
+      // No pins — world view
+      projection = geoNaturalEarth1().scale(worldScale).translate([W / 2, H / 2])
+    } else {
+      const lats = pins.map(p => p.lat)
+      const lngs = pins.map(p => p.lng)
+      const latSpan = Math.max(...lats) - Math.min(...lats)
+      const lngSpan = Math.max(...lngs) - Math.min(...lngs)
+      const isRegional = latSpan < 60 && lngSpan < 90
+
+      if (isRegional) {
+        // Zoom to fit pins with padding
+        const PAD = 15
+        const bbox = {
+          type: 'FeatureCollection' as const,
+          features: [
+            {
+              type: 'Feature' as const,
+              geometry: { type: 'Point' as const, coordinates: [Math.min(...lngs) - PAD, Math.min(...lats) - PAD] },
+              properties: {},
+            },
+            {
+              type: 'Feature' as const,
+              geometry: { type: 'Point' as const, coordinates: [Math.max(...lngs) + PAD, Math.max(...lats) + PAD] },
+              properties: {},
+            },
+          ],
+        }
+        projection = geoMercator().fitExtent([[0, 0], [W, H]], bbox)
+      } else {
+        projection = geoNaturalEarth1().scale(worldScale).translate([W / 2, H / 2])
+      }
+    }
+
+    const gen = geoPath(projection)
+    const countryPaths = geoFeatures.map(f => gen(f as GeoPermissibleObjects) ?? '')
+    const pinCoords = pins.map(pin => {
       const coords = projection([pin.lng, pin.lat])
       return { ...pin, x: coords?.[0] ?? 0, y: coords?.[1] ?? 0 }
     })
-  }, [pins, countryPaths, cfg.scale, cfg.W, cfg.H])
+
+    return { countryPaths, pinCoords }
+  }, [geoFeatures, pins, W, H, worldScale])
 
   return (
     <div className="absolute inset-0 overflow-hidden rounded-lg">
-      {/* Map — full bleed */}
       <div className="absolute inset-0 bg-stone-50">
         {countryPaths.length > 0 ? (
           <svg
-            viewBox={`0 0 ${cfg.W} ${cfg.H}`}
+            viewBox={`0 0 ${W} ${H}`}
             preserveAspectRatio="xMidYMid slice"
             className="w-full h-full"
           >
-            {/* Country fills */}
             {countryPaths.map((d, i) => (
-              <path
-                key={i}
-                d={d}
-                fill="#d6d3d1"
-                stroke="#fafaf9"
-                strokeWidth={0.8}
-              />
+              <path key={i} d={d} fill="#d6d3d1" stroke="#fafaf9" strokeWidth={0.8} />
             ))}
 
-            {/* Pins */}
             {pinCoords.map(pin => (
               <g
                 key={pin.id}
@@ -94,34 +122,22 @@ export function MapCard({ places, size }: { places: Place[]; size: '2x1' | '2x2'
                 onMouseLeave={() => setTooltip(null)}
                 style={{ cursor: 'default' }}
               >
-                {/* Outer glow ring */}
                 <circle cx={pin.x} cy={pin.y} r={7} fill="#1c1917" opacity={0.12} />
-                {/* Pin dot */}
                 <circle cx={pin.x} cy={pin.y} r={4} fill="#1c1917" stroke="#fafaf9" strokeWidth={1.5} />
               </g>
             ))}
 
-            {/* Tooltip rendered inside SVG for correct coordinate space */}
             {tooltip && (() => {
-              const tx = Math.min(Math.max(tooltip.x, 80), cfg.W - 80)
-              const ty = tooltip.y > cfg.H / 2 ? tooltip.y - 28 : tooltip.y + 18
+              const tx = Math.min(Math.max(tooltip.x, 70), W - 70)
+              const ty = tooltip.y > H / 2 ? tooltip.y - 28 : tooltip.y + 18
               return (
                 <g>
-                  <rect
-                    x={tx - 50}
-                    y={ty - 14}
-                    width={100}
-                    height={28}
-                    rx={6}
-                    fill="white"
-                    opacity={0.95}
-                  />
+                  <rect x={tx - 50} y={ty - 14} width={100} height={28} rx={6} fill="white" opacity={0.95} />
                   <text
-                    x={tx}
-                    y={ty + 2}
+                    x={tx} y={ty + 2}
                     textAnchor="middle"
                     fontSize={11}
-                    fontFamily="var(--font-cormorant-garamond), serif"
+                    fontFamily="var(--font-cormorant), serif"
                     fontWeight={600}
                     fill="#1c1917"
                   >
@@ -136,7 +152,6 @@ export function MapCard({ places, size }: { places: Place[]; size: '2x1' | '2x2'
         )}
       </div>
 
-      {/* Bottom overlay */}
       <div className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-end justify-between pointer-events-none">
         <div>
           <p className="font-mono text-[9px] text-stone-400 uppercase tracking-wider leading-none mb-0.5">Places</p>

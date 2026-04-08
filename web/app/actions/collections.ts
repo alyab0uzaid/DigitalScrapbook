@@ -49,6 +49,23 @@ export async function updateCollection(collectionId: string, formData: FormData,
   return { success: true }
 }
 
+export async function toggleCollectionPublic(collectionId: string, isPublic: boolean, username: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('collections')
+    .update({ is_public: isPublic })
+    .eq('id', collectionId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/${username}`)
+  return { success: true }
+}
+
 export async function deleteCollection(collectionId: string, username: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

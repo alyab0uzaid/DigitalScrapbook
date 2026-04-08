@@ -24,7 +24,7 @@ more personal, more curated, more beautiful by default.
 - **Auth:** Supabase Auth
 - **Storage:** Supabase Storage for all media
 - **External APIs:** TMDB (movies), Google Books (books), Spotify (music)
-- **Typography:** Cormorant Garamond (serif, primary) + JetBrains Mono (monospace, labels/metadata)
+- **Typography:** Fraunces (serif, primary) + JetBrains Mono (monospace, labels/metadata)
 
 ---
 
@@ -39,7 +39,7 @@ more personal, more curated, more beautiful by default.
 - No follower counts, like counts, or any performance metrics visible on profiles.
 - Keep components small and focused. No giant files.
 - Mobile-first thinking even on web. Everything should feel warm and personal, not like a SaaS tool.
-- Never use Inter, Roboto, Arial, or system fonts. Always Cormorant Garamond + JetBrains Mono.
+- Never use Inter, Roboto, Arial, or system fonts. Always Fraunces + JetBrains Mono.
 - Every element should feel intentional. Nothing accidental, nothing default. If it looks like AI slop, redo it.
 
 ---
@@ -52,7 +52,7 @@ White background. Warm, clean, minimal. Soft shadows. Rounded corners
 polaroids, albums like records. Typography is the personality of the app.
 
 ### Typography
-- **Cormorant Garamond** — titles, book names, movie names, any content title. Serif. Primary font.
+- **Fraunces** — titles, book names, movie names, any content title. Serif. Primary font.
 - **JetBrains Mono** — category labels, status pills, usernames, dates, metadata, counts. Monospace. Secondary font.
 - Never mix in other fonts.
 

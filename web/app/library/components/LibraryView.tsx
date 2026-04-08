@@ -4,12 +4,17 @@ import { useState, useTransition, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { addItem, deleteItem } from '@/app/actions/items'
-import { createCollection } from '@/app/actions/collections'
+import { createCollection, toggleCollectionPublic } from '@/app/actions/collections'
 import { uploadPhoto } from '@/app/actions/photos'
 import NoteEditor from './NoteEditor'
 import AddItemSheet from './AddItemSheet'
 import AddPlaceSheet from './AddPlaceSheet'
 import EditCollectionModal from '@/app/[username]/components/EditCollectionModal'
+import { BookCard1x1 } from '@/app/[username]/components/cards/BookCard'
+import { MovieCard1x1 } from '@/app/[username]/components/cards/MovieCard'
+import { MusicCard1x1 } from '@/app/[username]/components/cards/MusicCard'
+import { PhotoCard } from '@/app/[username]/components/cards/PhotoCard'
+import { ItemCard1x1 } from '@/app/[username]/components/cards/ItemCard'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -29,7 +34,9 @@ type Collection = {
   name: string
   type: string
   description: string | null
+  is_public: boolean
   created_at: string
+  collection_items?: { item_id: string }[]
 }
 
 type SearchResult = {
@@ -62,7 +69,7 @@ const STATUS_STYLES: Record<string, string> = {
   'want to go': 'bg-yellow-50 text-yellow-700',
 }
 
-type Tab = 'collections' | 'books' | 'movies' | 'music' | 'photos' | 'links' | 'notes' | 'items' | 'places'
+type Tab = 'collections' | 'reads' | 'flicks' | 'music' | 'photos' | 'links' | 'notes' | 'items' | 'places'
 
 // ─── Status pill ─────────────────────────────────────────────────────────────
 
@@ -94,7 +101,7 @@ export default function LibraryView({
   const [editingCollection, setEditingCollection] = useState<Collection | null>(null)
   const [, startTransition] = useTransition()
 
-  // Add item sheet state (shared for books + movies)
+  // Add item sheet state (shared for reads + flicks)
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [addType, setAddType] = useState<'book' | 'movie' | 'music'>('book')
   const [query, setQuery] = useState('')
@@ -139,8 +146,8 @@ export default function LibraryView({
 
   // ─── Derived data ─────────────────────────────────────────────────────────
 
-  const books = localItems.filter(i => i.type === 'book')
-  const movies = localItems.filter(i => i.type === 'movie')
+  const reads = localItems.filter(i => i.type === 'book')
+  const flicks = localItems.filter(i => i.type === 'movie')
   const music = localItems.filter(i => i.type === 'music')
   const photos = localItems.filter(i => i.type === 'photo')
   const links = localItems.filter(i => i.type === 'link')
@@ -149,7 +156,25 @@ export default function LibraryView({
   const places = localItems.filter(i => i.type === 'place')
 
   function collectionItems(collectionId: string) {
-    return localItems.filter(i => i.collection_id === collectionId)
+    const col = localCollections.find(c => c.id === collectionId)
+    const ids = new Set(col?.collection_items?.map(ci => ci.item_id) ?? [])
+    return localItems.filter(i => ids.has(i.id))
+  }
+
+  function handleItemAdded(collectionId: string, itemId: string) {
+    setLocalCollections(prev => prev.map(c =>
+      c.id === collectionId
+        ? { ...c, collection_items: [...(c.collection_items ?? []), { item_id: itemId }] }
+        : c
+    ))
+  }
+
+  function handleItemRemoved(collectionId: string, itemId: string) {
+    setLocalCollections(prev => prev.map(c =>
+      c.id === collectionId
+        ? { ...c, collection_items: (c.collection_items ?? []).filter(ci => ci.item_id !== itemId) }
+        : c
+    ))
   }
 
   const statuses = addType === 'book' ? BOOK_STATUSES : addType === 'movie' ? MOVIE_STATUSES : MUSIC_STATUSES
@@ -362,6 +387,7 @@ export default function LibraryView({
         name: newCollName,
         type: 'collection',
         description: newCollDesc || null,
+        is_public: true,
         created_at: new Date().toISOString(),
       }
       setLocalCollections(prev => [newCol, ...prev])
@@ -380,8 +406,8 @@ export default function LibraryView({
 
   const TABS: { key: Tab; label: string; count: number }[] = [
     { key: 'collections', label: 'Collections', count: localCollections.length },
-    { key: 'books', label: 'Books', count: books.length },
-    { key: 'movies', label: 'Movies', count: movies.length },
+    { key: 'reads', label: 'Reads', count: reads.length },
+    { key: 'flicks', label: 'Flicks', count: flicks.length },
     { key: 'music', label: 'Music', count: music.length },
     { key: 'photos', label: 'Photos', count: photos.length },
     { key: 'links', label: 'Links', count: links.length },
@@ -410,20 +436,20 @@ export default function LibraryView({
             + New collection
           </button>
         )}
-        {tab === 'books' && (
+        {tab === 'reads' && (
           <button
             onClick={() => openAddSheet('book')}
             className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition"
           >
-            + Add book
+            + Add a read
           </button>
         )}
-        {tab === 'movies' && (
+        {tab === 'flicks' && (
           <button
             onClick={() => openAddSheet('movie')}
             className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition"
           >
-            + Add movie
+            + Add a flick
           </button>
         )}
         {tab === 'music' && (
@@ -512,18 +538,34 @@ export default function LibraryView({
               {localCollections.map(col => {
                 const colItems = collectionItems(col.id)
                 return (
-                  <button
+                  <div
                     key={col.id}
-                    onClick={() => setEditingCollection(col)}
                     className="text-left rounded-2xl border border-[#e0ddd8] bg-white p-4 hover:shadow-md transition group"
                   >
-                    <div className="mb-3">
-                      <p className="font-serif text-base font-semibold text-stone-900 group-hover:text-stone-700 transition">
-                        {col.name}
-                      </p>
-                      {col.description && (
-                        <p className="font-mono text-[9px] text-stone-400 mt-0.5 line-clamp-1">{col.description}</p>
-                      )}
+                    <div className="flex items-start justify-between mb-3">
+                      <button onClick={() => setEditingCollection(col)} className="flex-1 min-w-0 text-left">
+                        <p className="font-serif text-base font-semibold text-stone-900 group-hover:text-stone-700 transition">
+                          {col.name}
+                        </p>
+                        {col.description && (
+                          <p className="font-mono text-[9px] text-stone-400 mt-0.5 line-clamp-1">{col.description}</p>
+                        )}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const next = !col.is_public
+                          setLocalCollections(prev => prev.map(c => c.id === col.id ? { ...c, is_public: next } : c))
+                          await toggleCollectionPublic(col.id, next, username)
+                        }}
+                        title={col.is_public ? 'Public — click to make private' : 'Private — click to make public'}
+                        className="ml-2 shrink-0 font-mono text-[10px] px-1.5 py-0.5 rounded-full transition hover:opacity-70"
+                        style={col.is_public
+                          ? { background: 'rgb(240 253 244)', color: 'rgb(21 128 61)' }
+                          : { background: 'rgb(245 245 244)', color: 'rgb(120 113 108)' }
+                        }
+                      >
+                        {col.is_public ? 'public' : 'private'}
+                      </button>
                     </div>
 
                     {/* Item covers preview */}
@@ -544,7 +586,7 @@ export default function LibraryView({
                         <span className="font-mono text-[9px] text-stone-400 ml-1">+{colItems.length - 5}</span>
                       )}
                     </div>
-                  </button>
+                  </div>
                 )
               })}
             </div>
@@ -552,48 +594,31 @@ export default function LibraryView({
         </>
       )}
 
-      {/* ── Books tab ───────────────────────────────────────────────────── */}
-      {tab === 'books' && (
+      {/* ── Reads tab ───────────────────────────────────────────────────── */}
+      {tab === 'reads' && (
         <>
-          {books.length === 0 ? (
+          {reads.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="font-serif text-lg text-stone-400">No books yet.</p>
+              <p className="font-serif text-lg text-stone-400">No reads yet.</p>
               <button
                 onClick={() => openAddSheet('book')}
                 className="mt-3 font-mono text-xs text-stone-500 underline underline-offset-2 hover:text-stone-700"
               >
-                Add your first book
+                Add your first read
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-x-4 gap-y-6">
-              {books.map(item => (
-                <div key={item.id} className="group relative">
-                  <div className="aspect-[2/3] rounded-lg overflow-hidden bg-stone-100 relative">
-                    {item.image_url ? (
-                      <Image src={item.image_url} alt={item.title ?? ''} fill className="object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center p-2">
-                        <p className="font-serif text-xs text-stone-400 text-center line-clamp-3">{item.title}</p>
-                      </div>
-                    )}
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      disabled={removingId === item.id}
-                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition disabled:opacity-40"
-                    >
-                      {removingId === item.id ? '…' : '×'}
-                    </button>
-                  </div>
-                  <div className="mt-2">
-                    <p className="font-serif text-xs font-medium text-stone-900 leading-tight line-clamp-1">{item.title}</p>
-                    {(item.metadata?.author as string | null) && (
-                      <p className="font-mono text-[9px] text-stone-400 mt-0.5 truncate">{item.metadata.author as string}</p>
-                    )}
-                    <div className="mt-1">
-                      <StatusPill status={item.status} />
-                    </div>
-                  </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
+              {reads.map(item => (
+                <div key={item.id} className="relative rounded-lg overflow-hidden bg-stone-50 group">
+                  <BookCard1x1 item={item} />
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    disabled={removingId === item.id}
+                    className="absolute top-1.5 right-1.5 z-10 w-5 h-5 rounded-full bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition disabled:opacity-40"
+                  >
+                    {removingId === item.id ? '…' : '×'}
+                  </button>
                 </div>
               ))}
             </div>
@@ -601,48 +626,31 @@ export default function LibraryView({
         </>
       )}
 
-      {/* ── Movies tab ──────────────────────────────────────────────────── */}
-      {tab === 'movies' && (
+      {/* ── Flicks tab ──────────────────────────────────────────────────── */}
+      {tab === 'flicks' && (
         <>
-          {movies.length === 0 ? (
+          {flicks.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="font-serif text-lg text-stone-400">No movies yet.</p>
+              <p className="font-serif text-lg text-stone-400">No flicks yet.</p>
               <button
                 onClick={() => openAddSheet('movie')}
                 className="mt-3 font-mono text-xs text-stone-500 underline underline-offset-2 hover:text-stone-700"
               >
-                Add your first movie
+                Add your first flick
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-x-4 gap-y-6">
-              {movies.map(item => (
-                <div key={item.id} className="group relative">
-                  <div className="aspect-[2/3] rounded-lg overflow-hidden bg-stone-100 relative">
-                    {item.image_url ? (
-                      <Image src={item.image_url} alt={item.title ?? ''} fill className="object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center p-2">
-                        <p className="font-serif text-xs text-stone-400 text-center line-clamp-3">{item.title}</p>
-                      </div>
-                    )}
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      disabled={removingId === item.id}
-                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition disabled:opacity-40"
-                    >
-                      {removingId === item.id ? '…' : '×'}
-                    </button>
-                  </div>
-                  <div className="mt-2">
-                    <p className="font-serif text-xs font-medium text-stone-900 leading-tight line-clamp-1">{item.title}</p>
-                    {(item.metadata?.media_type as string | null) && (
-                      <p className="font-mono text-[9px] text-stone-400 mt-0.5 truncate uppercase">{item.metadata.media_type as string}</p>
-                    )}
-                    <div className="mt-1">
-                      <StatusPill status={item.status} />
-                    </div>
-                  </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
+              {flicks.map(item => (
+                <div key={item.id} className="relative rounded-lg overflow-hidden bg-stone-50 group">
+                  <MovieCard1x1 item={item} />
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    disabled={removingId === item.id}
+                    className="absolute top-1.5 right-1.5 z-10 w-5 h-5 rounded-full bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition disabled:opacity-40"
+                  >
+                    {removingId === item.id ? '…' : '×'}
+                  </button>
                 </div>
               ))}
             </div>
@@ -664,34 +672,17 @@ export default function LibraryView({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-x-4 gap-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
               {music.map(item => (
-                <div key={item.id} className="group relative">
-                  <div className="aspect-square rounded-lg overflow-hidden bg-stone-100 relative">
-                    {item.image_url ? (
-                      <Image src={item.image_url} alt={item.title ?? ''} fill className="object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center p-2">
-                        <p className="font-serif text-xs text-stone-400 text-center line-clamp-3">{item.title}</p>
-                      </div>
-                    )}
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      disabled={removingId === item.id}
-                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition disabled:opacity-40"
-                    >
-                      {removingId === item.id ? '…' : '×'}
-                    </button>
-                  </div>
-                  <div className="mt-2">
-                    <p className="font-serif text-xs font-medium text-stone-900 leading-tight line-clamp-1">{item.title}</p>
-                    {(item.metadata?.artist as string | null) && (
-                      <p className="font-mono text-[9px] text-stone-400 mt-0.5 truncate">{item.metadata.artist as string}</p>
-                    )}
-                    <div className="mt-1">
-                      <StatusPill status={item.status} />
-                    </div>
-                  </div>
+                <div key={item.id} className="relative rounded-lg overflow-hidden bg-stone-50 group">
+                  <MusicCard1x1 item={item} />
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    disabled={removingId === item.id}
+                    className="absolute top-1.5 right-1.5 z-10 w-5 h-5 rounded-full bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition disabled:opacity-40"
+                  >
+                    {removingId === item.id ? '…' : '×'}
+                  </button>
                 </div>
               ))}
             </div>
@@ -713,34 +704,17 @@ export default function LibraryView({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-x-4 gap-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
               {physicalItems.map(item => (
-                <div key={item.id} className="group relative">
-                  <div className="aspect-square rounded-lg overflow-hidden bg-stone-50 relative flex items-center justify-center">
-                    {item.image_url ? (
-                      <img
-                        src={item.image_url}
-                        alt={item.title ?? ''}
-                        className="max-h-full max-w-full object-contain p-2"
-                        style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.12))' }}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-stone-100" />
-                    )}
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      disabled={removingId === item.id}
-                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition disabled:opacity-40"
-                    >
-                      {removingId === item.id ? '…' : '×'}
-                    </button>
-                  </div>
-                  <div className="mt-2">
-                    <p className="font-serif text-xs font-medium text-stone-900 leading-tight line-clamp-1">{item.title}</p>
-                    {(item.metadata?.brand as string | null) && (
-                      <p className="font-mono text-[9px] text-stone-400 mt-0.5 truncate">{item.metadata.brand as string}</p>
-                    )}
-                  </div>
+                <div key={item.id} className="relative rounded-lg overflow-hidden bg-stone-50 group">
+                  <ItemCard1x1 item={item} />
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    disabled={removingId === item.id}
+                    className="absolute top-1.5 right-1.5 z-10 w-5 h-5 rounded-full bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition disabled:opacity-40"
+                  >
+                    {removingId === item.id ? '…' : '×'}
+                  </button>
                 </div>
               ))}
             </div>
@@ -975,26 +949,17 @@ export default function LibraryView({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-x-4 gap-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
               {photos.map(item => (
-                <div key={item.id} className="group relative">
-                  <div className="aspect-square rounded-lg overflow-hidden bg-stone-100 relative">
-                    {item.image_url ? (
-                      <Image src={item.image_url} alt={item.title ?? ''} fill className="object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-stone-100" />
-                    )}
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      disabled={removingId === item.id}
-                      className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition disabled:opacity-40"
-                    >
-                      {removingId === item.id ? '…' : '×'}
-                    </button>
-                  </div>
-                  <div className="mt-2">
-                    <p className="font-serif text-xs font-medium text-stone-900 leading-tight line-clamp-1">{item.title}</p>
-                  </div>
+                <div key={item.id} className="relative rounded-lg overflow-hidden bg-stone-50 group">
+                  <PhotoCard item={item} />
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    disabled={removingId === item.id}
+                    className="absolute top-1.5 right-1.5 z-10 w-5 h-5 rounded-full bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition disabled:opacity-40"
+                  >
+                    {removingId === item.id ? '…' : '×'}
+                  </button>
                 </div>
               ))}
             </div>
@@ -1060,10 +1025,12 @@ export default function LibraryView({
       {editingCollection && (
         <EditCollectionModal
           collection={editingCollection}
-          items={collectionItems(editingCollection.id)}
           libraryItems={localItems}
+          initialItemIds={collectionItems(editingCollection.id).map(i => i.id)}
           username={username}
           onClose={() => setEditingCollection(null)}
+          onItemAdded={handleItemAdded}
+          onItemRemoved={handleItemRemoved}
         />
       )}
 
@@ -1108,14 +1075,14 @@ export default function LibraryView({
         </div>
       )}
 
-      {/* ── Add item sheet (books + movies) ─────────────────────────────── */}
+      {/* ── Add item sheet (reads + flicks) ─────────────────────────────── */}
       {showAddSheet && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/20" onClick={closeAddSheet} />
           <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-xl border border-[#e0ddd8] p-6 pb-8">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-serif text-xl font-semibold text-stone-900">
-                {addType === 'book' ? 'Add a book' : addType === 'movie' ? 'Add a movie or show' : 'Add music'}
+                {addType === 'book' ? 'Add a read' : addType === 'movie' ? 'Add a flick or show' : 'Add music'}
               </h2>
               <button onClick={closeAddSheet} className="font-mono text-xs text-stone-400 hover:text-stone-600">Close</button>
             </div>
@@ -1126,7 +1093,7 @@ export default function LibraryView({
               value={query}
               onChange={e => handleSearch(e.target.value)}
               autoFocus
-              placeholder={addType === 'book' ? 'Search by title or author…' : addType === 'movie' ? 'Search movies and TV shows…' : 'Search songs and albums…'}
+              placeholder={addType === 'book' ? 'Search by title or author…' : addType === 'movie' ? 'Search flicks and shows…' : 'Search songs and albums…'}
               className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 font-serif text-base text-stone-900 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-stone-900 transition mb-3"
             />
 

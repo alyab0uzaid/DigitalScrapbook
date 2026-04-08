@@ -28,6 +28,16 @@ const SIZE_OPTIONS: { value: WidgetSize; label: string }[] = [
   { value: '2x2', label: '2×2' },
 ]
 
+const CONTENT_TYPES: { type: string; label: string }[] = [
+  { type: 'book',  label: 'Reads' },
+  { type: 'movie', label: 'Flicks' },
+  { type: 'music', label: 'Music' },
+  { type: 'photo', label: 'Photos' },
+  { type: 'link',  label: 'Links' },
+  { type: 'note',  label: 'Notes' },
+  { type: 'item',  label: 'Items' },
+]
+
 export default function AddWidgetSheet({
   collections,
   items,
@@ -45,9 +55,10 @@ export default function AddWidgetSheet({
   const [internalOpen, setInternalOpen] = useState(false)
   const open = controlled ? externalOpen : internalOpen
 
-  const [tab, setTab] = useState<'collections' | 'items'>('collections')
+  const [tab, setTab] = useState<'types' | 'collections' | 'items'>('types')
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
+  const [selectedType, setSelectedType] = useState<string | null>(null)
   const [size, setSize] = useState<WidgetSize>('1x1')
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -56,6 +67,7 @@ export default function AddWidgetSheet({
   function handleOpen() {
     setSelectedCollection(null)
     setSelectedItem(null)
+    setSelectedType(null)
     setSize('1x1')
     setError('')
     if (!controlled) setInternalOpen(true)
@@ -66,13 +78,21 @@ export default function AddWidgetSheet({
     else setInternalOpen(false)
   }
 
+  function handleTabChange(t: typeof tab) {
+    setTab(t)
+    setSelectedCollection(null)
+    setSelectedItem(null)
+    setSelectedType(null)
+  }
+
   function handleAdd() {
-    if (!selectedCollection && !selectedItem) return
+    if (!selectedCollection && !selectedItem && !selectedType) return
     setError('')
     startTransition(async () => {
       const result = await addWidget({
         collectionId: selectedCollection,
         itemId: selectedItem,
+        itemType: selectedType,
         widgetSize: size,
         username,
       })
@@ -81,7 +101,38 @@ export default function AddWidgetSheet({
     })
   }
 
-  const hasSelection = selectedCollection || selectedItem
+  const hasSelection = selectedCollection || selectedItem || selectedType
+
+  // Content types that the user actually has items for
+  const availableTypes = CONTENT_TYPES.filter(ct =>
+    items.some(i => i.type === ct.type)
+  )
+
+  // Size filter based on what's selected
+  const availableSizes = SIZE_OPTIONS.filter(s => {
+    if (selectedType) {
+      if (selectedType === 'photo') return true
+      if (selectedType === 'note') return s.value !== '2x2'
+      return s.value === '1x1' || s.value === '2x1' || s.value === '1x2'
+    }
+    if (selectedItem) {
+      const itemType = items.find(i => i.id === selectedItem)?.type
+      if (itemType === 'photo') return true
+      if (itemType === 'link') return s.value === '1x1' || s.value === '2x1'
+      if (itemType === 'note') return s.value !== '2x2'
+      if (itemType === 'item') return s.value === '1x1' || s.value === '2x1'
+      if (itemType === 'book' || itemType === 'movie' || itemType === 'music') {
+        return s.value !== '1x2' && s.value !== '2x2'
+      }
+      return s.value !== '2x2'
+    }
+    if (selectedCollection) {
+      const colType = collections.find(c => c.id === selectedCollection)?.type
+      if (colType === 'map') return s.value === '2x1' || s.value === '2x2'
+      return s.value !== '2x2'
+    }
+    return s.value !== '2x2'
+  })
 
   return (
     <>
@@ -106,10 +157,10 @@ export default function AddWidgetSheet({
 
             {/* Tabs */}
             <div className="flex gap-1 mb-5 bg-stone-100 rounded-lg p-1">
-              {(['collections', 'items'] as const).map(t => (
+              {(['types', 'collections', 'items'] as const).map(t => (
                 <button
                   key={t}
-                  onClick={() => { setTab(t); setSelectedCollection(null); setSelectedItem(null) }}
+                  onClick={() => handleTabChange(t)}
                   className={`flex-1 py-1.5 rounded-md font-mono text-xs transition capitalize ${tab === t ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}
                 >
                   {t}
@@ -117,7 +168,34 @@ export default function AddWidgetSheet({
               ))}
             </div>
 
-            {/* Collections */}
+            {/* Types tab */}
+            {tab === 'types' && (
+              <div className="flex flex-col gap-2 max-h-52 overflow-y-auto mb-5">
+                {availableTypes.length === 0 && (
+                  <p className="font-mono text-xs text-stone-400 text-center py-6">No items in your library yet.</p>
+                )}
+                {availableTypes.map(ct => {
+                  const count = items.filter(i => i.type === ct.type).length
+                  return (
+                    <button
+                      key={ct.type}
+                      onClick={() => setSelectedType(ct.type === selectedType ? null : ct.type)}
+                      className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${selectedType === ct.type ? 'border-stone-900 bg-stone-50' : 'border-stone-100 hover:border-stone-200'}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-serif text-sm font-medium text-stone-900">{ct.label}</p>
+                        <p className="font-mono text-[9px] text-stone-400 mt-0.5">{count} items</p>
+                      </div>
+                      {selectedType === ct.type && (
+                        <span className="font-mono text-xs text-stone-900">✓</span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Collections tab */}
             {tab === 'collections' && (
               <div className="flex flex-col gap-2 max-h-52 overflow-y-auto mb-5">
                 {collections.length === 0 && (
@@ -141,7 +219,7 @@ export default function AddWidgetSheet({
               </div>
             )}
 
-            {/* Items */}
+            {/* Items tab */}
             {tab === 'items' && (
               <div className="flex flex-col gap-2 max-h-52 overflow-y-auto mb-5">
                 {items.filter(item => item.type !== 'place').length === 0 && (
@@ -175,22 +253,7 @@ export default function AddWidgetSheet({
               <div className="mb-5">
                 <p className="font-mono text-xs text-stone-500 uppercase tracking-wider mb-2">Widget size</p>
                 <div className="flex gap-2">
-                  {SIZE_OPTIONS.filter(s => {
-                    if (!selectedItem) {
-                      const colType = collections.find(c => c.id === selectedCollection)?.type
-                      if (colType === 'map') return s.value === '2x1' || s.value === '2x2'
-                      return s.value !== '2x2' // other collections: no 2x2
-                    }
-                    const itemType = items.find(i => i.id === selectedItem)?.type
-                    if (itemType === 'photo') return true
-                    if (itemType === 'link') return s.value === '1x1' || s.value === '2x1'
-                    if (itemType === 'note') return s.value !== '2x2'
-                    if (itemType === 'item') return s.value === '1x1' || s.value === '2x1'
-                    if (itemType === 'book' || itemType === 'movie' || itemType === 'music') {
-                      return s.value !== '1x2' && s.value !== '2x2'
-                    }
-                    return s.value !== '2x2'
-                  }).map(s => (
+                  {availableSizes.map(s => (
                     <button
                       key={s.value}
                       onClick={() => setSize(s.value)}

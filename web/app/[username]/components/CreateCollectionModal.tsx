@@ -49,7 +49,7 @@ export default function CreateCollectionModal() {
                   required
                   autoFocus
                   className="w-full rounded-xl border border-stone-200 px-3.5 py-2.5 font-serif text-base text-stone-900 placeholder:text-stone-300 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:border-transparent transition"
-                  placeholder="Books that changed me"
+                  placeholder="Reads that changed me"
                 />
               </div>
 

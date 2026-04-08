@@ -28,7 +28,6 @@ function LinkCardInner({ item, large }: { item: Item; large?: boolean }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
             className="relative flex h-7 w-7 items-center justify-center text-stone-400 group-hover:text-stone-700 transition-colors duration-200"
           >
             {/* Background circle — scales independently */}

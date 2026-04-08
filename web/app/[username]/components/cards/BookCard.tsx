@@ -117,7 +117,7 @@ export function BookCard2x1({ item }: { item: Item }) {
       {/* Right half — text at bottom, left-aligned */}
       <div className="w-1/2 h-full flex flex-col items-start justify-end gap-1.5 pb-6 pr-6">
         <StatusPill status={item.status} />
-        <p className="font-serif text-2xl font-medium text-stone-900 leading-tight line-clamp-3">{item.title}</p>
+        <p className="font-serif text-2xl font-semibold text-stone-900 leading-tight line-clamp-3">{item.title}</p>
         {author && <p className="font-mono text-[9px] text-stone-400">{author}</p>}
       </div>
     </div>

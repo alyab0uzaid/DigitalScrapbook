@@ -75,7 +75,7 @@ export default async function ProfilePage({
           <div className="w-16 h-16 rounded-full bg-stone-200 flex items-center justify-center font-serif text-2xl font-medium text-stone-500 shrink-0">
             {profile.full_name?.[0] ?? profile.username[0].toUpperCase()}
           </div>
-          <h1 className="font-serif text-6xl text-stone-900 leading-none">
+          <h1 className="font-serif text-6xl font-light text-stone-900 leading-none">
             {profile.full_name ?? profile.username}
           </h1>
         </div>

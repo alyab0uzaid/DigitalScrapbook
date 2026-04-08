@@ -95,7 +95,7 @@ export default async function SectionPage({
           <ProfileNav username={username} sections={navData.sections} collections={navData.collections} isOwner={isOwner} />
         </div>
         <div className="mb-10">
-          <h1 className="font-serif text-6xl text-stone-900 leading-none">places</h1>
+          <h1 className="font-serif text-6xl font-light text-stone-900 leading-none">places</h1>
           <p className="font-serif text-sm text-stone-500 mt-3">
             {count} {count === 1 ? 'city' : 'cities'} saved · @{username}
           </p>
@@ -144,7 +144,7 @@ export default async function SectionPage({
         <ProfileNav username={username} sections={navData.sections} collections={navData.collections} isOwner={isOwner} />
       </div>
       <div className="mb-10">
-        <h1 className="font-serif text-6xl text-stone-900 leading-none">{sectionMeta.label.toLowerCase()}</h1>
+        <h1 className="font-serif text-6xl font-light text-stone-900 leading-none">{sectionMeta.label.toLowerCase()}</h1>
         <p className="font-serif text-sm text-stone-500 mt-3">
           {count} {count === 1 ? 'item' : 'items'} · @{username}
         </p>

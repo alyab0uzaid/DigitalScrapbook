@@ -10,6 +10,8 @@ import NoteEditor from './NoteEditor'
 import AddItemSheet from './AddItemSheet'
 import AddPlaceSheet from './AddPlaceSheet'
 import EditCollectionModal from '@/app/[username]/components/EditCollectionModal'
+import ProfileNav from '@/app/[username]/components/ProfileNav'
+import { CollectionCard1x1 } from '@/app/[username]/components/cards/CollectionCard'
 import { BookCard1x1 } from '@/app/[username]/components/cards/BookCard'
 import { MovieCard1x1 } from '@/app/[username]/components/cards/MovieCard'
 import { MusicCard1x1 } from '@/app/[username]/components/cards/MusicCard'
@@ -89,10 +91,14 @@ export default function LibraryView({
   items: initialItems,
   collections: initialCollections,
   username,
+  navSections,
+  navCollections,
 }: {
   items: Item[]
   collections: Collection[]
   username: string
+  navSections: { slug: string; label: string }[]
+  navCollections: { id: string; name: string; is_public: boolean }[]
 }) {
   const [tab, setTab] = useState<Tab>('collections')
   const [localItems, setLocalItems] = useState(initialItems)
@@ -418,104 +424,88 @@ export default function LibraryView({
 
   return (
     <>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <Link href={`/${username}`} className="font-mono text-xs text-stone-400 hover:text-stone-600 transition">
-            ← {username}
-          </Link>
-          <h1 className="font-serif text-2xl font-semibold text-stone-900 mt-1">Library</h1>
-        </div>
+      {/* Nav */}
+      <div className="flex mb-8">
+        <ProfileNav
+          username={username}
+          sections={navSections}
+          collections={navCollections}
+          isOwner={true}
+        />
+      </div>
 
+      {/* Header */}
+      <div className="flex items-end justify-between mb-10">
+        <div>
+          <h1 className="font-serif text-6xl font-light text-stone-900 leading-none">library</h1>
+          <p className="font-serif text-sm text-stone-500 mt-3">
+            {localItems.length} {localItems.length === 1 ? 'item' : 'items'} · {localCollections.length} {localCollections.length === 1 ? 'collection' : 'collections'}
+          </p>
+        </div>
         {/* Context-sensitive add button */}
-        {tab === 'collections' && (
-          <button
-            onClick={() => setShowNewCollection(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition"
-          >
-            + New collection
-          </button>
-        )}
-        {tab === 'reads' && (
-          <button
-            onClick={() => openAddSheet('book')}
-            className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition"
-          >
-            + Add a read
-          </button>
-        )}
-        {tab === 'flicks' && (
-          <button
-            onClick={() => openAddSheet('movie')}
-            className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition"
-          >
-            + Add a flick
-          </button>
-        )}
-        {tab === 'music' && (
-          <button
-            onClick={() => openAddSheet('music')}
-            className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition"
-          >
-            + Add music
-          </button>
-        )}
-        {tab === 'items' && (
-          <button
-            onClick={() => setShowAddItemSheet(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition"
-          >
-            + Add item
-          </button>
-        )}
-        {tab === 'places' && (
-          <button
-            onClick={() => setShowAddPlaceSheet(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition"
-          >
-            + Add place
-          </button>
-        )}
-        {tab === 'notes' && (
-          <button
-            onClick={() => setShowNoteEditor(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition"
-          >
-            + New note
-          </button>
-        )}
-        {tab === 'links' && (
-          <button
-            onClick={() => setShowAddLink(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition"
-          >
-            + Add link
-          </button>
-        )}
-        {tab === 'photos' && (
-          <button
-            onClick={() => setShowUploadPhoto(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition"
-          >
-            + Upload photo
-          </button>
-        )}
+        <div className="shrink-0">
+          {tab === 'collections' && (
+            <button onClick={() => setShowNewCollection(true)} className="rounded-lg bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition">
+              + New collection
+            </button>
+          )}
+          {tab === 'reads' && (
+            <button onClick={() => openAddSheet('book')} className="rounded-lg bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition">
+              + Add a read
+            </button>
+          )}
+          {tab === 'flicks' && (
+            <button onClick={() => openAddSheet('movie')} className="rounded-lg bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition">
+              + Add a flick
+            </button>
+          )}
+          {tab === 'music' && (
+            <button onClick={() => openAddSheet('music')} className="rounded-lg bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition">
+              + Add music
+            </button>
+          )}
+          {tab === 'items' && (
+            <button onClick={() => setShowAddItemSheet(true)} className="rounded-lg bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition">
+              + Add item
+            </button>
+          )}
+          {tab === 'places' && (
+            <button onClick={() => setShowAddPlaceSheet(true)} className="rounded-lg bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition">
+              + Add place
+            </button>
+          )}
+          {tab === 'notes' && (
+            <button onClick={() => setShowNoteEditor(true)} className="rounded-lg bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition">
+              + New note
+            </button>
+          )}
+          {tab === 'links' && (
+            <button onClick={() => setShowAddLink(true)} className="rounded-lg bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition">
+              + Add link
+            </button>
+          )}
+          {tab === 'photos' && (
+            <button onClick={() => setShowUploadPhoto(true)} className="rounded-lg bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition">
+              + Upload photo
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0 mb-8 border-b border-stone-200">
+      <div className="flex gap-0 mb-8 border-b border-stone-100">
         {TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2.5 font-mono text-xs transition border-b-2 -mb-px ${
+            className={`px-4 py-2 font-mono text-xs transition border-b-2 -mb-px ${
               tab === t.key
                 ? 'border-stone-900 text-stone-900'
                 : 'border-transparent text-stone-400 hover:text-stone-600'
             }`}
           >
             {t.label}
-            <span className="ml-1.5 text-stone-400">{t.count}</span>
+            {t.count > 0 && <span className="ml-1.5 text-stone-300">{t.count}</span>}
           </button>
         ))}
       </div>
@@ -534,58 +524,36 @@ export default function LibraryView({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
               {localCollections.map(col => {
                 const colItems = collectionItems(col.id)
+                const cardCol = {
+                  ...col,
+                  collection_items: colItems.map((item, i) => ({ display_order: i, item })),
+                }
                 return (
-                  <div
-                    key={col.id}
-                    className="text-left rounded-2xl border border-[#e0ddd8] bg-white p-4 hover:shadow-md transition group"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <button onClick={() => setEditingCollection(col)} className="flex-1 min-w-0 text-left">
-                        <p className="font-serif text-base font-semibold text-stone-900 group-hover:text-stone-700 transition">
-                          {col.name}
-                        </p>
-                        {col.description && (
-                          <p className="font-mono text-[9px] text-stone-400 mt-0.5 line-clamp-1">{col.description}</p>
-                        )}
-                      </button>
-                      <button
-                        onClick={async () => {
-                          const next = !col.is_public
-                          setLocalCollections(prev => prev.map(c => c.id === col.id ? { ...c, is_public: next } : c))
-                          await toggleCollectionPublic(col.id, next, username)
-                        }}
-                        title={col.is_public ? 'Public — click to make private' : 'Private — click to make public'}
-                        className="ml-2 shrink-0 font-mono text-[10px] px-1.5 py-0.5 rounded-full transition hover:opacity-70"
-                        style={col.is_public
-                          ? { background: 'rgb(240 253 244)', color: 'rgb(21 128 61)' }
-                          : { background: 'rgb(245 245 244)', color: 'rgb(120 113 108)' }
-                        }
-                      >
-                        {col.is_public ? 'public' : 'private'}
-                      </button>
-                    </div>
-
-                    {/* Item covers preview */}
-                    <div className="flex items-end gap-1.5 h-12">
-                      {colItems.slice(0, 5).map(item => (
-                        item.image_url ? (
-                          <div key={item.id} className="relative w-8 h-12 rounded-sm overflow-hidden shrink-0">
-                            <Image src={item.image_url} alt={item.title ?? ''} fill className="object-cover" />
-                          </div>
-                        ) : (
-                          <div key={item.id} className="w-8 h-12 rounded-sm bg-stone-100 shrink-0" />
-                        )
-                      ))}
-                      {colItems.length === 0 && (
-                        <p className="font-mono text-[9px] text-stone-300">Empty</p>
-                      )}
-                      {colItems.length > 5 && (
-                        <span className="font-mono text-[9px] text-stone-400 ml-1">+{colItems.length - 5}</span>
-                      )}
-                    </div>
+                  <div key={col.id} className="relative rounded-lg overflow-hidden bg-stone-50 group">
+                    <button
+                      className="absolute inset-0 w-full h-full z-10"
+                      onClick={() => setEditingCollection(col)}
+                    />
+                    <CollectionCard1x1 collection={cardCol} />
+                    {/* Public/private badge */}
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        const next = !col.is_public
+                        setLocalCollections(prev => prev.map(c => c.id === col.id ? { ...c, is_public: next } : c))
+                        await toggleCollectionPublic(col.id, next, username)
+                      }}
+                      className="absolute top-2 right-2 z-20 font-mono text-[8px] px-1.5 py-0.5 rounded-full transition hover:opacity-80"
+                      style={col.is_public
+                        ? { background: 'rgb(240 253 244)', color: 'rgb(21 128 61)' }
+                        : { background: 'rgb(245 245 244)', color: 'rgb(120 113 108)' }
+                      }
+                    >
+                      {col.is_public ? 'public' : 'private'}
+                    </button>
                   </div>
                 )
               })}

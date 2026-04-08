@@ -25,7 +25,7 @@ export default async function Home() {
       <div className="text-center">
         <h1 className="text-3xl font-serif font-semibold text-stone-900 tracking-tight mb-3">Cubbi</h1>
         <p className="text-stone-500 mb-8 max-w-xs mx-auto text-sm leading-relaxed">
-          Your personal scrapbook. Books, photos, music, places — everything that makes you, you.
+          Your personal scrapbook. Reads, flicks, photos, music, places — everything that makes you, you.
         </p>
         <div className="flex gap-3 justify-center">
           <Link

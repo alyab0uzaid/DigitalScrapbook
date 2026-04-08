@@ -5,6 +5,7 @@ import { feature } from 'topojson-client'
 import { geoNaturalEarth1, geoMercator, geoPath, geoCentroid } from 'd3-geo'
 import type { Topology, GeometryCollection } from 'topojson-specification'
 import type { GeoPermissibleObjects } from 'd3-geo'
+import type { Feature, Geometry, GeoJsonProperties } from 'geojson'
 
 type Place = {
   id: string
@@ -12,7 +13,7 @@ type Place = {
   metadata: Record<string, unknown>
 }
 
-type GeoFeature = ReturnType<typeof feature>['features'][number]
+type GeoFeature = Feature<Geometry, GeoJsonProperties>
 
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 

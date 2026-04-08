@@ -45,7 +45,7 @@ export default async function ProfilePage({
       : Promise.resolve({ data: [] as { id: string; name: string; type: string }[] }),
     supabase
       .from('items')
-      .select('id, title, type, image_url, status')
+      .select('id, title, type, image_url, status, metadata')
       .eq('user_id', profile.id)
       .order('created_at', { ascending: false }),
     supabase

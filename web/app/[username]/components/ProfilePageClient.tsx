@@ -15,7 +15,7 @@ type Props = {
   isOwner: boolean
   widgets: Widget[]
   collections: { id: string; name: string; type: string }[]
-  items: { id: string; title: string | null; type: string; image_url: string | null; status: string | null }[]
+  items: { id: string; title: string | null; type: string; image_url: string | null; status: string | null; metadata?: Record<string, unknown> | null }[]
   places: PlaceItem[]
 }
 

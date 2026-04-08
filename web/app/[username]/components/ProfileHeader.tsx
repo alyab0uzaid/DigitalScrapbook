@@ -3,6 +3,9 @@
 import { useState, useRef, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateProfile } from '@/app/actions/profile'
+import FriendButton from './FriendButton'
+
+type FriendStatus = 'none' | 'request_sent' | 'request_received' | 'friends'
 
 type Props = {
   username: string
@@ -12,9 +15,13 @@ type Props = {
   isOwner: boolean
   editMode: boolean
   onEditToggle: () => void
+  friendStatus?: FriendStatus
+  profileUserId?: string
+  pendingRequestId?: string | null
+  isLoggedIn?: boolean
 }
 
-export default function ProfileHeader({ username, fullName, bio, avatarUrl, isOwner, editMode, onEditToggle }: Props) {
+export default function ProfileHeader({ username, fullName, bio, avatarUrl, isOwner, editMode, onEditToggle, friendStatus, profileUserId, pendingRequestId, isLoggedIn }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
 
@@ -136,6 +143,17 @@ export default function ProfileHeader({ username, fullName, bio, avatarUrl, isOw
             {error && <p className="font-mono text-xs text-red-500 mt-1">{error}</p>}
           </div>
         </div>
+
+        {/* Friend button — shown to logged-in non-owners */}
+        {!isOwner && isLoggedIn && profileUserId && friendStatus !== undefined && (
+          <div className="shrink-0">
+            <FriendButton
+              profileUserId={profileUserId}
+              initialStatus={friendStatus}
+              pendingRequestId={pendingRequestId}
+            />
+          </div>
+        )}
 
         {/* Edit Profile / Save + Cancel */}
         {isOwner && (

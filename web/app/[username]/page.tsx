@@ -23,7 +23,7 @@ export default async function ProfilePage({
   const { data: { user } } = await supabase.auth.getUser()
   const isOwner = user?.id === profile.id
 
-  const [{ data: widgets }, { data: collections }, { data: items }, { data: places }, navData] = await Promise.all([
+  const [{ data: widgets }, { data: collections }, { data: items }, { data: places }, navData, { data: friendRequest }] = await Promise.all([
     supabase
       .from('profile_widgets')
       .select(`
@@ -54,7 +54,33 @@ export default async function ProfilePage({
       .eq('user_id', profile.id)
       .eq('type', 'place'),
     getNavData(profile.id, isOwner, supabase),
+    // Fetch the relationship between current user and profile owner
+    user && !isOwner
+      ? supabase
+          .from('friend_requests')
+          .select('id, from_id, to_id, status')
+          .or(`and(from_id.eq.${user.id},to_id.eq.${profile.id}),and(from_id.eq.${profile.id},to_id.eq.${user.id})`)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
+
+  // Derive friend status for the FriendButton
+  type FriendStatus = 'none' | 'request_sent' | 'request_received' | 'friends'
+  let friendStatus: FriendStatus = 'none'
+  let pendingRequestId: string | null = null
+
+  if (friendRequest) {
+    if (friendRequest.status === 'accepted') {
+      friendStatus = 'friends'
+    } else if (friendRequest.status === 'pending') {
+      if (friendRequest.from_id === user?.id) {
+        friendStatus = 'request_sent'
+      } else {
+        friendStatus = 'request_received'
+        pendingRequestId = friendRequest.id
+      }
+    }
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
@@ -79,6 +105,10 @@ export default async function ProfilePage({
         collections={collections ?? []}
         items={items ?? []}
         places={(places ?? []) as { id: string; title: string | null; metadata: Record<string, unknown> }[]}
+        friendStatus={friendStatus}
+        profileUserId={profile.id}
+        pendingRequestId={pendingRequestId}
+        isLoggedIn={!!user}
       />
     </div>
   )

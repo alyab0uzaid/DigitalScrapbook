@@ -6,9 +6,11 @@ import Link from 'next/link'
 import { addItem, deleteItem } from '@/app/actions/items'
 import { createCollection, toggleCollectionPublic } from '@/app/actions/collections'
 import { uploadPhoto } from '@/app/actions/photos'
+import { acceptFriendRequest, declineFriendRequest, sendFriendRequest, removeFriend } from '@/app/actions/friends'
 import NoteEditor from './NoteEditor'
 import AddItemSheet from './AddItemSheet'
 import AddPlaceSheet from './AddPlaceSheet'
+import NotificationBell from './NotificationBell'
 import EditCollectionModal from '@/app/[username]/components/EditCollectionModal'
 import ProfileNav from '@/app/[username]/components/ProfileNav'
 import { CollectionCard1x1 } from '@/app/[username]/components/cards/CollectionCard'
@@ -71,7 +73,35 @@ const STATUS_STYLES: Record<string, string> = {
   'want to go': 'bg-yellow-50 text-yellow-700',
 }
 
-type Tab = 'collections' | 'reads' | 'flicks' | 'music' | 'photos' | 'links' | 'notes' | 'items' | 'places'
+type Tab = 'collections' | 'reads' | 'flicks' | 'music' | 'photos' | 'links' | 'notes' | 'items' | 'places' | 'friends'
+
+type Friend = {
+  request_id: string
+  user: { id: string; username: string; full_name: string | null; avatar_url: string | null }
+}
+
+type PendingRequest = {
+  id: string
+  from_user: { id: string; username: string; full_name: string | null; avatar_url: string | null }
+}
+
+type NotificationItem = {
+  id: string
+  type: string
+  actor_id: string
+  data: Record<string, unknown>
+  read_at: string | null
+  created_at: string
+  actor?: { id: string; username: string; full_name: string | null; avatar_url: string | null } | null
+  request_id?: string | null
+}
+
+type UserSearchResult = {
+  id: string
+  username: string
+  full_name: string | null
+  avatar_url: string | null
+}
 
 // ─── Status pill ─────────────────────────────────────────────────────────────
 
@@ -93,12 +123,18 @@ export default function LibraryView({
   username,
   navSections,
   navCollections,
+  friends: initialFriends = [],
+  pendingRequests: initialPending = [],
+  notifications: initialNotifications = [],
 }: {
   items: Item[]
   collections: Collection[]
   username: string
   navSections: { slug: string; label: string }[]
   navCollections: { id: string; name: string; is_public: boolean }[]
+  friends?: Friend[]
+  pendingRequests?: PendingRequest[]
+  notifications?: NotificationItem[]
 }) {
   const [tab, setTab] = useState<Tab>('collections')
   const [localItems, setLocalItems] = useState(initialItems)
@@ -134,6 +170,16 @@ export default function LibraryView({
   const [showAddItemSheet, setShowAddItemSheet] = useState(false)
   // Place sheet state
   const [showAddPlaceSheet, setShowAddPlaceSheet] = useState(false)
+
+  // Friends state
+  const [friends, setFriends] = useState(initialFriends)
+  const [pendingRequests, setPendingRequests] = useState(initialPending)
+  const [friendSearch, setFriendSearch] = useState('')
+  const [friendSearchResults, setFriendSearchResults] = useState<UserSearchResult[]>([])
+  const [searchingFriends, setSearchingFriends] = useState(false)
+  const [friendActionPending, setFriendActionPending] = useState<string | null>(null)
+  const [sentRequests, setSentRequests] = useState<Set<string>>(new Set())
+  const friendSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Photo upload state
   const [showUploadPhoto, setShowUploadPhoto] = useState(false)
@@ -408,6 +454,54 @@ export default function LibraryView({
   const alreadyInLibrary = (externalId: string) =>
     localItems.some(i => i.id === externalId || String(i.metadata?.tmdb_id) === externalId || i.metadata?.google_books_id === externalId)
 
+  function handleFriendSearch(value: string) {
+    setFriendSearch(value)
+    if (friendSearchTimeout.current) clearTimeout(friendSearchTimeout.current)
+    if (!value.trim()) { setFriendSearchResults([]); return }
+    friendSearchTimeout.current = setTimeout(async () => {
+      setSearchingFriends(true)
+      try {
+        const res = await fetch(`/api/search/users?q=${encodeURIComponent(value)}`)
+        const data = await res.json()
+        setFriendSearchResults(data.results ?? [])
+      } finally {
+        setSearchingFriends(false)
+      }
+    }, 350)
+  }
+
+  async function handleSendRequest(userId: string) {
+    setFriendActionPending(userId)
+    const res = await sendFriendRequest(userId)
+    if (!res?.error) setSentRequests(prev => new Set(prev).add(userId))
+    setFriendActionPending(null)
+  }
+
+  async function handleAcceptRequest(requestId: string, fromUserId: string) {
+    setFriendActionPending(requestId)
+    await acceptFriendRequest(requestId)
+    const pending = pendingRequests.find(r => r.id === requestId)
+    if (pending) {
+      setFriends(prev => [...prev, { request_id: requestId, user: pending.from_user }])
+      setPendingRequests(prev => prev.filter(r => r.id !== requestId))
+    }
+    setFriendActionPending(null)
+  }
+
+  async function handleDeclineRequest(requestId: string) {
+    setFriendActionPending(requestId)
+    await declineFriendRequest(requestId)
+    setPendingRequests(prev => prev.filter(r => r.id !== requestId))
+    setFriendActionPending(null)
+  }
+
+  async function handleRemoveFriend(friendUserId: string, requestId: string) {
+    setFriendActionPending(friendUserId)
+    await removeFriend(friendUserId)
+    setFriends(prev => prev.filter(f => f.request_id !== requestId))
+    setFriendActionPending(null)
+  }
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   const TABS: { key: Tab; label: string; count: number }[] = [
@@ -420,6 +514,7 @@ export default function LibraryView({
     { key: 'notes', label: 'Notes', count: notes.length },
     { key: 'items', label: 'Items', count: physicalItems.length },
     { key: 'places', label: 'Places', count: places.length },
+    { key: 'friends', label: 'Friends', count: friends.length },
   ]
 
   return (
@@ -442,8 +537,9 @@ export default function LibraryView({
             {localItems.length} {localItems.length === 1 ? 'item' : 'items'} · {localCollections.length} {localCollections.length === 1 ? 'collection' : 'collections'}
           </p>
         </div>
-        {/* Context-sensitive add button */}
-        <div className="shrink-0">
+        {/* Context-sensitive add button + notification bell */}
+        <div className="flex items-center gap-2 shrink-0">
+          <NotificationBell notifications={initialNotifications} />
           {tab === 'collections' && (
             <button onClick={() => setShowNewCollection(true)} className="rounded-lg bg-stone-900 px-4 py-2 font-mono text-xs text-white hover:bg-stone-700 transition">
               + New collection
@@ -738,6 +834,152 @@ export default function LibraryView({
             </div>
           )}
         </>
+      )}
+
+      {/* ── Friends tab ─────────────────────────────────────────────────── */}
+      {tab === 'friends' && (
+        <div className="space-y-8">
+          {/* Pending requests */}
+          {pendingRequests.length > 0 && (
+            <div>
+              <p className="font-mono text-[9px] text-stone-400 uppercase tracking-wider mb-3">
+                Pending requests · {pendingRequests.length}
+              </p>
+              <div className="flex flex-col gap-2">
+                {pendingRequests.map(req => (
+                  <div key={req.id} className="flex items-center gap-3 rounded-2xl border border-[#e0ddd8] bg-white p-3">
+                    <div className="w-9 h-9 rounded-full bg-stone-200 overflow-hidden shrink-0">
+                      {req.from_user.avatar_url ? (
+                        <Image src={req.from_user.avatar_url} alt={req.from_user.username} width={36} height={36} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center font-serif text-sm text-stone-500">
+                          {(req.from_user.full_name?.[0] ?? req.from_user.username[0]).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-serif text-sm font-medium text-stone-900 truncate">
+                        {req.from_user.full_name ?? req.from_user.username}
+                      </p>
+                      <p className="font-mono text-[9px] text-stone-400">@{req.from_user.username}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => handleAcceptRequest(req.id, req.from_user.id)}
+                        disabled={friendActionPending === req.id}
+                        className="font-mono text-[10px] bg-stone-900 text-white px-3 py-1.5 rounded-lg hover:bg-stone-700 transition disabled:opacity-50"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => handleDeclineRequest(req.id)}
+                        disabled={friendActionPending === req.id}
+                        className="font-mono text-[10px] text-stone-400 hover:text-stone-600 transition"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Search */}
+          <div>
+            <p className="font-mono text-[9px] text-stone-400 uppercase tracking-wider mb-3">Find people</p>
+            <input
+              type="text"
+              value={friendSearch}
+              onChange={e => handleFriendSearch(e.target.value)}
+              placeholder="Search by username or name…"
+              className="w-full rounded-xl border border-stone-200 px-4 py-2.5 font-mono text-xs text-stone-900 placeholder:text-stone-300 outline-none focus:border-stone-400 transition"
+            />
+            {searchingFriends && (
+              <p className="font-mono text-[9px] text-stone-400 mt-2">Searching…</p>
+            )}
+            {friendSearchResults.length > 0 && (
+              <div className="mt-2 flex flex-col gap-2">
+                {friendSearchResults.map(u => {
+                  const alreadyFriend = friends.some(f => f.user.id === u.id)
+                  const sent = sentRequests.has(u.id)
+                  return (
+                    <div key={u.id} className="flex items-center gap-3 rounded-2xl border border-[#e0ddd8] bg-white p-3">
+                      <div className="w-9 h-9 rounded-full bg-stone-200 overflow-hidden shrink-0">
+                        {u.avatar_url ? (
+                          <Image src={u.avatar_url} alt={u.username} width={36} height={36} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center font-serif text-sm text-stone-500">
+                            {(u.full_name?.[0] ?? u.username[0]).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <a href={`/${u.username}`} className="flex-1 min-w-0 hover:opacity-70 transition">
+                        <p className="font-serif text-sm font-medium text-stone-900 truncate">
+                          {u.full_name ?? u.username}
+                        </p>
+                        <p className="font-mono text-[9px] text-stone-400">@{u.username}</p>
+                      </a>
+                      {alreadyFriend ? (
+                        <span className="font-mono text-[10px] text-stone-400 shrink-0">Friends ✓</span>
+                      ) : sent ? (
+                        <span className="font-mono text-[10px] text-stone-400 shrink-0">Sent</span>
+                      ) : (
+                        <button
+                          onClick={() => handleSendRequest(u.id)}
+                          disabled={friendActionPending === u.id}
+                          className="font-mono text-[10px] bg-stone-900 text-white px-3 py-1.5 rounded-lg hover:bg-stone-700 transition disabled:opacity-50 shrink-0"
+                        >
+                          Add Friend
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {friendSearch && !searchingFriends && friendSearchResults.length === 0 && (
+              <p className="font-mono text-xs text-stone-400 mt-4 text-center">No users found.</p>
+            )}
+          </div>
+
+          {/* Current friends */}
+          <div>
+            <p className="font-mono text-[9px] text-stone-400 uppercase tracking-wider mb-3">
+              {friends.length > 0 ? `Friends · ${friends.length}` : 'No friends yet'}
+            </p>
+            {friends.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {friends.map(f => (
+                  <div key={f.request_id} className="group flex items-center gap-3 rounded-2xl border border-[#e0ddd8] bg-white p-3">
+                    <div className="w-9 h-9 rounded-full bg-stone-200 overflow-hidden shrink-0">
+                      {f.user.avatar_url ? (
+                        <Image src={f.user.avatar_url} alt={f.user.username} width={36} height={36} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center font-serif text-sm text-stone-500">
+                          {(f.user.full_name?.[0] ?? f.user.username[0]).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <a href={`/${f.user.username}`} className="flex-1 min-w-0 hover:opacity-70 transition">
+                      <p className="font-serif text-sm font-medium text-stone-900 truncate">
+                        {f.user.full_name ?? f.user.username}
+                      </p>
+                      <p className="font-mono text-[9px] text-stone-400">@{f.user.username}</p>
+                    </a>
+                    <button
+                      onClick={() => handleRemoveFriend(f.user.id, f.request_id)}
+                      disabled={friendActionPending === f.user.id}
+                      className="opacity-0 group-hover:opacity-100 font-mono text-[9px] text-stone-300 hover:text-red-400 transition disabled:opacity-40 shrink-0"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* ── Add place sheet ──────────────────────────────────────────────── */}

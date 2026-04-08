@@ -80,6 +80,7 @@ export default async function CollectionPage({
   const items: Item[] = (collectionItems ?? [])
     .map(ci => ci.item as unknown as Item | null)
     .filter((i): i is Item => i !== null)
+    .filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx)
 
   const count = items.length
 

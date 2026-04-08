@@ -51,7 +51,7 @@ export default function ProfileNav({
 
   return (
     <div
-      className="pointer-events-auto relative inline-flex items-center rounded-lg border border-neutral-200 bg-white/70 p-1 shadow-md backdrop-blur-md"
+      className="pointer-events-auto relative z-50 inline-flex items-center rounded-lg border border-neutral-200 bg-white/70 p-1 shadow-md backdrop-blur-md"
       onMouseLeave={() => setHoveredIdx(null)}
     >
       {/* Sliding indicator */}

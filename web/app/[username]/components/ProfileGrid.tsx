@@ -286,6 +286,8 @@ export default function ProfileGrid({
   collections,
   items,
   places,
+  editMode,
+  onEditToggle,
 }: {
   widgets: Widget[]
   username: string
@@ -293,9 +295,10 @@ export default function ProfileGrid({
   collections: { id: string; name: string; type: string }[]
   items: { id: string; title: string | null; type: string; image_url: string | null; status: string | null }[]
   places: PlaceItem[]
+  editMode: boolean
+  onEditToggle: () => void
 }) {
   const router = useRouter()
-  const [editMode, setEditMode] = useState(false)
 
   // Sync when server pushes fresh props after router.refresh()
   useEffect(() => {
@@ -304,7 +307,12 @@ export default function ProfileGrid({
       committedRef.current = initialWidgets
     }
   }, [initialWidgets])
+
   const [showAddSheet, setShowAddSheet] = useState(false)
+
+  useEffect(() => {
+    if (!editMode) setShowAddSheet(false)
+  }, [editMode])
   const [widgets, setWidgets] = useState(initialWidgets)
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -390,7 +398,7 @@ export default function ProfileGrid({
           <div className="flex flex-col items-center gap-4">
             <p className="font-serif text-lg text-stone-400">Your profile is empty.</p>
             <button
-              onClick={() => setEditMode(true)}
+              onClick={onEditToggle}
               className="rounded-xl bg-stone-900 px-5 py-2.5 font-mono text-xs text-white hover:bg-stone-700 transition"
             >
               + Add to profile
@@ -410,22 +418,6 @@ export default function ProfileGrid({
 
   return (
     <>
-      {isOwner && (
-        <div className="mb-4 text-right">
-          <button
-            onClick={() => { setEditMode(e => !e); setShowAddSheet(false) }}
-            title={editMode ? 'Done editing' : 'Edit profile'}
-            className={`rounded-lg px-3 py-1.5 font-mono text-xs transition ${
-              editMode
-                ? 'bg-stone-900 text-white'
-                : 'text-stone-400 hover:text-stone-700 hover:bg-stone-50'
-            }`}
-          >
-            {editMode ? 'done' : '✏ edit'}
-          </button>
-        </div>
-      )}
-
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}

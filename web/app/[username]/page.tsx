@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import ProfileGrid from './components/ProfileGrid'
+import ProfilePageClient from './components/ProfilePageClient'
 import ProfileNav from './components/ProfileNav'
 import { getNavData } from './lib/getNavData'
 
@@ -14,7 +14,7 @@ export default async function ProfilePage({
 
   const { data: profile } = await supabase
     .from('users')
-    .select('id, username, full_name, bio, avatar_url')
+    .select('id, username, full_name, bio, avatar_url, is_public')
     .eq('username', username)
     .single()
 
@@ -69,26 +69,13 @@ export default async function ProfilePage({
         />
       </div>
 
-      {/* Profile header */}
-      <div className="mb-10">
-        <div className="flex items-center gap-5 mb-3">
-          <div className="w-16 h-16 rounded-full bg-stone-200 flex items-center justify-center font-serif text-2xl font-medium text-stone-500 shrink-0">
-            {profile.full_name?.[0] ?? profile.username[0].toUpperCase()}
-          </div>
-          <h1 className="font-serif text-6xl font-light text-stone-900 leading-none">
-            {profile.full_name ?? profile.username}
-          </h1>
-        </div>
-        {profile.bio && (
-          <p className="font-serif text-sm text-stone-500 mt-2 max-w-lg">{profile.bio}</p>
-        )}
-      </div>
-
-      {/* Bento grid */}
-      <ProfileGrid
-        widgets={(widgets ?? []) as unknown as Parameters<typeof ProfileGrid>[0]['widgets']}
+      <ProfilePageClient
         username={profile.username}
+        fullName={profile.full_name}
+        bio={profile.bio}
+        avatarUrl={profile.avatar_url}
         isOwner={isOwner}
+        widgets={(widgets ?? []).filter((w, i, arr) => arr.findIndex(x => x.id === w.id) === i) as unknown as Parameters<typeof ProfilePageClient>[0]['widgets']}
         collections={collections ?? []}
         items={items ?? []}
         places={(places ?? []) as { id: string; title: string | null; metadata: Record<string, unknown> }[]}

@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   DndContext,
@@ -33,6 +34,7 @@ import { MapCard } from './cards/MapCard'
 import { ContentTypeCard1x1, ContentTypeCard1x2, ContentTypeCard2x1 } from './cards/ContentTypeCard'
 import { CollectionCard1x1, CollectionCard2x1 } from './cards/CollectionCard'
 import AddWidgetSheet from './AddWidgetSheet'
+import { typeToSlug } from '../lib/sections'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -83,6 +85,30 @@ const COLLECTION_TYPE_LABELS: Record<string, string> = {
   collection: 'Collection',
   log: 'Log',
   blog: 'Blog',
+}
+
+// ─── Widget link helper ───────────────────────────────────────────────────────
+
+function widgetHref(widget: Widget, username: string): string | null {
+  if (widget.item_type) {
+    if (widget.item_type === 'link') return null // link cards handle their own external navigation
+    const slug = typeToSlug(widget.item_type)
+    return slug ? `/${username}/${slug}` : null
+  }
+  if (widget.collection) {
+    if (widget.collection.type === 'map') return null
+    return `/${username}/c/${widget.collection.id}`
+  }
+  if (widget.item) {
+    if (widget.item.type === 'link') return null // link cards handle their own external navigation
+    const slug = typeToSlug(widget.item.type)
+    return slug ? `/${username}/${slug}` : null
+  }
+  return null
+}
+
+function isLinkWidget(widget: Widget): boolean {
+  return widget.item?.type === 'link' || widget.item_type === 'link'
 }
 
 // ─── Card content ─────────────────────────────────────────────────────────────
@@ -162,6 +188,7 @@ function SortableWidgetCard({
   places,
   items,
   onMeasure,
+  username,
 }: {
   widget: Widget
   editMode: boolean
@@ -171,6 +198,7 @@ function SortableWidgetCard({
   places: PlaceItem[]
   items: { id: string; title: string | null; type: string; image_url: string | null; status: string | null }[]
   onMeasure: (id: string, el: HTMLDivElement | null) => void
+  username: string
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useSortable({
     id: widget.id,
@@ -178,6 +206,7 @@ function SortableWidgetCard({
   })
 
   const sizeClass = SIZE_CLASSES[widget.widget_size] ?? 'col-span-1 row-span-1'
+  const href = widgetHref(widget, username)
 
   const refCallback = useCallback((el: HTMLDivElement | null) => {
     setNodeRef(el)
@@ -198,13 +227,18 @@ function SortableWidgetCard({
         !isDraggingAny ? 'hover:bg-stone-100' : ''
       } ${editMode ? 'ring-2 ring-stone-200' : ''}`}>
 
-        {/* Drag handle */}
+        {/* Drag handle (edit mode) */}
         {editMode && (
           <div
             {...attributes}
             {...listeners}
             className="absolute inset-0 z-10 cursor-grab active:cursor-grabbing"
           />
+        )}
+
+        {/* Navigation link (view mode) */}
+        {!editMode && href && (
+          <Link href={href} className="absolute inset-0 z-10" aria-label="View" />
         )}
 
         {/* Widget title */}
@@ -215,7 +249,7 @@ function SortableWidgetCard({
         )}
 
         {/* Card content */}
-        <div className="absolute inset-0 pointer-events-none">
+        <div className={`absolute inset-0 ${isLinkWidget(widget) ? '' : 'pointer-events-none'}`}>
           <CardContent widget={widget} places={places} items={items} />
         </div>
       </div>
@@ -413,6 +447,7 @@ export default function ProfileGrid({
                 places={places}
                 items={items}
                 onMeasure={handleMeasure}
+                username={username}
               />
             ))}
 

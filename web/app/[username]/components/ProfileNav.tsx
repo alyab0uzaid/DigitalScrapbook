@@ -14,11 +14,13 @@ export default function ProfileNav({
   sections,
   collections,
   isOwner,
+  currentUsername,
 }: {
   username: string
   sections: { slug: string; label: string }[]
   collections: { id: string; name: string; is_public: boolean }[]
   isOwner: boolean
+  currentUsername?: string | null
 }) {
   const pathname = usePathname()
   const base = `/${username}`
@@ -110,6 +112,19 @@ export default function ProfileNav({
             </>
           )}
         </div>
+      )}
+
+      {/* My profile — shown to logged-in visitors on someone else's profile */}
+      {!isOwner && currentUsername && (
+        <>
+          <span className="w-px h-4 bg-neutral-200 mx-0.5" />
+          <Link
+            href={`/${currentUsername}`}
+            className="rounded py-1 px-2 text-sm tracking-tight text-neutral-300 hover:text-neutral-600 transition-colors whitespace-nowrap"
+          >
+            my profile
+          </Link>
+        </>
       )}
 
       {/* Library + logout — owner-only, always last, visually separated */}

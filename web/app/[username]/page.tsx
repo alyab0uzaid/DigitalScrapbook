@@ -23,6 +23,10 @@ export default async function ProfilePage({
   const { data: { user } } = await supabase.auth.getUser()
   const isOwner = user?.id === profile.id
 
+  const { data: currentUserProfile } = user && !isOwner
+    ? await supabase.from('users').select('username').eq('id', user.id).single()
+    : { data: null }
+
   const [{ data: widgets }, { data: collections }, { data: items }, { data: places }, navData, { data: friendRequest }] = await Promise.all([
     supabase
       .from('profile_widgets')
@@ -92,6 +96,7 @@ export default async function ProfilePage({
           sections={navData.sections}
           collections={navData.collections}
           isOwner={isOwner}
+          currentUsername={currentUserProfile?.username ?? null}
         />
       </div>
 

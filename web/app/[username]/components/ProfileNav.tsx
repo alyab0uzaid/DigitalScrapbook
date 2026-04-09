@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useRef, useLayoutEffect, useState } from 'react'
+import { useRef, useLayoutEffect, useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { logout } from '@/app/actions/auth'
 
-const MAX_VISIBLE_DESKTOP = 5
-const MAX_VISIBLE_MOBILE = 3  // home + 3 tabs + more button
+const MAX_VISIBLE = 5
+// On mobile pill: home + up to 3 content tabs + library (owner) then more
+const MAX_MOBILE_VISIBLE = 3
 
 type NavTab = { href: string; label: string }
 
@@ -32,47 +34,61 @@ export default function ProfileNav({
     ...collections.map(c => ({ href: `${base}/c/${c.id}`, label: c.name.toLowerCase() })),
   ]
 
-  // ── Desktop ───────────────────────────────────────────────────────────────
-  const desktopMainTabs = contentTabs.slice(0, MAX_VISIBLE_DESKTOP)
-  const desktopOverflowTabs = contentTabs.slice(MAX_VISIBLE_DESKTOP)
+  const mainTabs = contentTabs.slice(0, MAX_VISIBLE)
+  const overflowTabs = contentTabs.slice(MAX_VISIBLE)
 
+  // Mobile: show home + first N content tabs in pill, rest in sheet
+  const mobilePillTabs = contentTabs.slice(0, MAX_MOBILE_VISIBLE + 1)
+  const mobileSheetTabs = contentTabs.slice(MAX_MOBILE_VISIBLE + 1)
+  const mobileHasMore = mobileSheetTabs.length > 0 || (!isOwner && !!currentUsername)
+
+  // ── Sliding indicator (shared for desktop + mobile pill) ─────────────────
   const tabRefs = useRef<(HTMLAnchorElement | null)[]>([])
+  const mobileTabRefs = useRef<(HTMLAnchorElement | null)[]>([])
   const [indicator, setIndicator] = useState({ width: 0, left: 0, opacity: 0 })
+  const [mobileIndicator, setMobileIndicator] = useState({ width: 0, left: 0, opacity: 0 })
   const [showDesktopMore, setShowDesktopMore] = useState(false)
+  const [showMobileMore, setShowMobileMore] = useState(false)
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
+  const [mobileHoveredIdx, setMobileHoveredIdx] = useState<number | null>(null)
+  const [mounted, setMounted] = useState(false)
 
-  const activeDesktopIdx = desktopMainTabs.findIndex(t => t.href === pathname)
+  useEffect(() => setMounted(true), [])
+
+  const activeIdx = mainTabs.findIndex(t => t.href === pathname)
+  const mobileActiveIdx = mobilePillTabs.findIndex(t => t.href === pathname)
 
   useLayoutEffect(() => {
-    const targetIdx = hoveredIdx ?? activeDesktopIdx
-    if (targetIdx >= 0 && tabRefs.current[targetIdx]) {
-      const el = tabRefs.current[targetIdx]!
+    const i = hoveredIdx ?? activeIdx
+    if (i >= 0 && tabRefs.current[i]) {
+      const el = tabRefs.current[i]!
       setIndicator({ width: el.offsetWidth, left: el.offsetLeft, opacity: 1 })
     } else {
       setIndicator(prev => ({ ...prev, opacity: 0 }))
     }
-  }, [pathname, desktopMainTabs.length, hoveredIdx, activeDesktopIdx])
+  }, [pathname, mainTabs.length, hoveredIdx, activeIdx])
 
-  // ── Mobile ────────────────────────────────────────────────────────────────
-  // home tab + up to MAX_VISIBLE_MOBILE content tabs in bottom bar, rest in sheet
-  const mobileMainTabs = contentTabs.slice(0, MAX_VISIBLE_MOBILE + 1) // +1 for home
-  const mobileOverflowTabs = contentTabs.slice(MAX_VISIBLE_MOBILE + 1)
-  const [showMobileMore, setShowMobileMore] = useState(false)
+  useLayoutEffect(() => {
+    const i = mobileHoveredIdx ?? mobileActiveIdx
+    if (i >= 0 && mobileTabRefs.current[i]) {
+      const el = mobileTabRefs.current[i]!
+      setMobileIndicator({ width: el.offsetWidth, left: el.offsetLeft, opacity: 1 })
+    } else {
+      setMobileIndicator(prev => ({ ...prev, opacity: 0 }))
+    }
+  }, [pathname, mobilePillTabs.length, mobileHoveredIdx, mobileActiveIdx])
 
-  const hasOverflow = mobileOverflowTabs.length > 0
-    || (isOwner)
-    || (!isOwner && !!currentUsername)
+  const pillClass = "relative inline-flex items-center rounded-lg border border-neutral-200 bg-white/90 p-1 shadow-md backdrop-blur-md"
 
   return (
     <>
-      {/* ── Desktop pill nav (hidden on mobile) ─────────────────────────── */}
+      {/* ── Desktop pill (sm+) ──────────────────────────────────────────── */}
       <div
-        className="hidden sm:inline-flex pointer-events-auto relative z-50 items-center rounded-lg border border-neutral-200 bg-white/70 p-1 shadow-md backdrop-blur-md"
+        className={`hidden sm:inline-flex pointer-events-auto z-50 ${pillClass}`}
         onMouseLeave={() => setHoveredIdx(null)}
       >
-        {/* Sliding indicator */}
         <div
-          className="absolute top-1 left-0 -z-10 h-7 rounded bg-neutral-200 backdrop-blur"
+          className="absolute top-1 left-0 -z-10 h-7 rounded bg-neutral-100"
           style={{
             width: indicator.width,
             transform: `translateX(${indicator.left}px)`,
@@ -81,7 +97,7 @@ export default function ProfileNav({
           }}
         />
 
-        {desktopMainTabs.map((tab, i) => (
+        {mainTabs.map((tab, i) => (
           <Link
             key={tab.href}
             href={tab.href}
@@ -95,7 +111,7 @@ export default function ProfileNav({
           </Link>
         ))}
 
-        {desktopOverflowTabs.length > 0 && (
+        {overflowTabs.length > 0 && (
           <div className="relative">
             <button
               onClick={() => setShowDesktopMore(v => !v)}
@@ -107,15 +123,13 @@ export default function ProfileNav({
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowDesktopMore(false)} />
                 <div className="absolute top-full left-0 mt-1 z-50 min-w-[160px] rounded-lg border border-neutral-200 bg-white shadow-md p-1">
-                  {desktopOverflowTabs.map(tab => (
+                  {overflowTabs.map(tab => (
                     <Link
                       key={tab.href}
                       href={tab.href}
                       onClick={() => setShowDesktopMore(false)}
                       className={`block rounded px-3 py-1.5 text-sm tracking-tight transition-colors ${
-                        pathname === tab.href
-                          ? 'text-neutral-900 bg-neutral-100'
-                          : 'text-neutral-400 hover:text-neutral-900'
+                        pathname === tab.href ? 'text-neutral-900 bg-neutral-100' : 'text-neutral-400 hover:text-neutral-900'
                       }`}
                     >
                       {tab.label}
@@ -127,35 +141,24 @@ export default function ProfileNav({
           </div>
         )}
 
-        {/* My profile — visitor */}
         {!isOwner && currentUsername && (
           <>
             <span className="w-px h-4 bg-neutral-200 mx-0.5" />
-            <Link
-              href={`/${currentUsername}`}
-              className="rounded py-1 px-2 text-sm tracking-tight text-neutral-300 hover:text-neutral-600 transition-colors whitespace-nowrap"
-            >
+            <Link href={`/${currentUsername}`} className="rounded py-1 px-2 text-sm tracking-tight text-neutral-300 hover:text-neutral-600 transition-colors whitespace-nowrap">
               my profile
             </Link>
           </>
         )}
 
-        {/* Library + logout — owner */}
         {isOwner && (
           <>
             <span className="w-px h-4 bg-neutral-200 mx-0.5" />
-            <Link
-              href="/library"
-              className="rounded py-1 px-2 text-sm tracking-tight text-neutral-300 hover:text-neutral-600 transition-colors whitespace-nowrap"
-            >
+            <Link href="/library" className="rounded py-1 px-2 text-sm tracking-tight text-neutral-300 hover:text-neutral-600 transition-colors whitespace-nowrap">
               library
             </Link>
             <span className="w-px h-4 bg-neutral-200 mx-0.5" />
             <form action={logout}>
-              <button
-                type="submit"
-                className="rounded py-1 px-2 text-sm tracking-tight text-neutral-300 hover:text-neutral-600 transition-colors whitespace-nowrap"
-              >
+              <button type="submit" className="rounded py-1 px-2 text-sm tracking-tight text-neutral-300 hover:text-neutral-600 transition-colors whitespace-nowrap">
                 logout
               </button>
             </form>
@@ -163,125 +166,124 @@ export default function ProfileNav({
         )}
       </div>
 
-      {/* ── Mobile bottom tab bar (hidden on desktop) ───────────────────── */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-t border-neutral-200"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        <div className="flex items-stretch h-14">
-          {/* Main tabs */}
-          {mobileMainTabs.map(tab => (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
-                pathname === tab.href ? 'text-neutral-900' : 'text-neutral-400'
-              }`}
-            >
-              <span className="font-mono text-[10px] tracking-tight truncate max-w-[60px] text-center leading-tight">
-                {tab.label}
-              </span>
-              {pathname === tab.href && (
-                <span className="w-1 h-1 rounded-full bg-neutral-900" />
-              )}
-            </Link>
-          ))}
+      {/* ── Mobile floating pill (below sm) — portaled to body so wrapper visibility doesn't affect it ── */}
+      {mounted && createPortal(<div className="sm:hidden">
+        {/* Gradient fade behind pill */}
+        <div className="fixed bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white/70 to-transparent pointer-events-none z-40" />
 
-          {/* Owner: library shortcut */}
-          {isOwner && (
-            <Link
-              href="/library"
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
-                pathname === '/library' ? 'text-neutral-900' : 'text-neutral-400'
-              }`}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <rect x="2" y="2" width="4" height="12" rx="1" stroke="currentColor" strokeWidth="1.25"/>
-                <rect x="7" y="2" width="4" height="12" rx="1" stroke="currentColor" strokeWidth="1.25"/>
-                <rect x="12" y="5" width="2" height="9" rx="1" stroke="currentColor" strokeWidth="1.25"/>
-              </svg>
-              {pathname === '/library' && (
-                <span className="w-1 h-1 rounded-full bg-neutral-900" />
-              )}
-            </Link>
-          )}
-
-          {/* More button */}
-          {hasOverflow && (
-            <button
-              onClick={() => setShowMobileMore(true)}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 text-neutral-400"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="3" cy="8" r="1.25" fill="currentColor"/>
-                <circle cx="8" cy="8" r="1.25" fill="currentColor"/>
-                <circle cx="13" cy="8" r="1.25" fill="currentColor"/>
-              </svg>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Mobile more sheet ────────────────────────────────────────────── */}
-      {showMobileMore && (
-        <>
+        {/* Pill — full width, floating above gradient */}
+        <div className="fixed bottom-5 left-0 right-0 z-50 px-4">
           <div
-            className="sm:hidden fixed inset-0 z-50 bg-black/20"
-            onClick={() => setShowMobileMore(false)}
-          />
-          <div
-            className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-xl"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            className="relative flex items-center rounded-lg border border-neutral-200 bg-white/90 p-1 shadow-md backdrop-blur-md pointer-events-auto w-full"
+            onMouseLeave={() => setMobileHoveredIdx(null)}
           >
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-8 h-1 rounded-full bg-neutral-200" />
-            </div>
+            {/* Sliding indicator */}
+            <div
+              className="absolute top-1 left-0 -z-10 h-7 rounded bg-neutral-100"
+              style={{
+                width: mobileIndicator.width,
+                transform: `translateX(${mobileIndicator.left}px)`,
+                opacity: mobileIndicator.opacity,
+                transition: 'width 150ms, transform 150ms, opacity 150ms',
+              }}
+            />
 
-            <div className="px-4 py-3 flex flex-col gap-1">
-              {/* Overflow content tabs */}
-              {mobileOverflowTabs.map(tab => (
+            {mobilePillTabs.map((tab, i) => (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                ref={el => { mobileTabRefs.current[i] = el }}
+                onMouseEnter={() => setMobileHoveredIdx(i)}
+                className={`rounded py-1 px-2 text-sm tracking-tight transition-colors whitespace-nowrap ${
+                  pathname === tab.href ? 'text-neutral-900' : 'text-neutral-400'
+                }`}
+              >
+                {tab.label}
+              </Link>
+            ))}
+
+            {/* Spacer pushes library/more to the right */}
+            <span className="flex-1" />
+
+            {/* Library for owners */}
+            {isOwner && (
+              <>
+                <span className="w-px h-4 bg-neutral-200 mx-0.5" />
                 <Link
-                  key={tab.href}
-                  href={tab.href}
-                  onClick={() => setShowMobileMore(false)}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-3 transition-colors ${
-                    pathname === tab.href ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-600'
+                  href="/library"
+                  className={`rounded py-1 px-2 text-sm tracking-tight transition-colors whitespace-nowrap ${
+                    pathname === '/library' ? 'text-neutral-900' : 'text-neutral-300'
                   }`}
                 >
-                  <span className="font-mono text-sm tracking-tight">{tab.label}</span>
+                  library
                 </Link>
-              ))}
+              </>
+            )}
 
-              {/* Visitor: my profile */}
-              {!isOwner && currentUsername && (
-                <Link
-                  href={`/${currentUsername}`}
-                  onClick={() => setShowMobileMore(false)}
-                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-neutral-600"
+            {/* More */}
+            {mobileHasMore && (
+              <>
+                {isOwner && <span className="w-px h-4 bg-neutral-200 mx-0.5" />}
+                <button
+                  onClick={() => setShowMobileMore(true)}
+                  className="rounded py-1 px-2 text-sm tracking-tight text-neutral-300 transition-colors"
                 >
-                  <span className="font-mono text-sm tracking-tight">my profile</span>
-                </Link>
-              )}
-
-              {/* Owner: logout */}
-              {isOwner && (
-                <>
-                  <div className="h-px bg-neutral-100 my-1" />
-                  <form action={logout}>
-                    <button
-                      type="submit"
-                      onClick={() => setShowMobileMore(false)}
-                      className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-neutral-400 text-left"
-                    >
-                      <span className="font-mono text-sm tracking-tight">logout</span>
-                    </button>
-                  </form>
-                </>
-              )}
-            </div>
+                  ···
+                </button>
+              </>
+            )}
           </div>
-        </>
-      )}
+        </div>
+
+        {/* More sheet */}
+        {showMobileMore && (
+          <>
+            <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setShowMobileMore(false)} />
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-xl" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-8 h-1 rounded-full bg-neutral-200" />
+              </div>
+              <div className="px-4 py-3 flex flex-col gap-1">
+                {mobileSheetTabs.map(tab => (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    onClick={() => setShowMobileMore(false)}
+                    className={`flex items-center rounded-xl px-3 py-3 transition-colors ${
+                      pathname === tab.href ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-600'
+                    }`}
+                  >
+                    <span className="font-mono text-sm tracking-tight">{tab.label}</span>
+                  </Link>
+                ))}
+                {!isOwner && currentUsername && (
+                  <Link
+                    href={`/${currentUsername}`}
+                    onClick={() => setShowMobileMore(false)}
+                    className="flex items-center rounded-xl px-3 py-3 text-neutral-600"
+                  >
+                    <span className="font-mono text-sm tracking-tight">my profile</span>
+                  </Link>
+                )}
+                {isOwner && (
+                  <>
+                    <div className="h-px bg-neutral-100 my-1" />
+                    <form action={logout}>
+                      <button
+                        type="submit"
+                        className="w-full flex items-center rounded-xl px-3 py-3 text-neutral-400 text-left"
+                        onClick={() => setShowMobileMore(false)}
+                      >
+                        <span className="font-mono text-sm tracking-tight">logout</span>
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>, document.body)}
     </>
   )
 }

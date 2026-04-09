@@ -520,7 +520,7 @@ export default function LibraryView({
   return (
     <>
       {/* Nav */}
-      <div className="hidden sm:flex mb-8">
+      <div className="hidden sm:block sm:mb-8">
         <ProfileNav
           username={username}
           sections={navSections}
@@ -528,12 +528,6 @@ export default function LibraryView({
           isOwner={true}
         />
       </div>
-      <ProfileNav
-        username={username}
-        sections={navSections}
-        collections={navCollections}
-        isOwner={true}
-      />
 
       {/* Header */}
       <div className="flex items-end justify-between mb-10">
@@ -626,7 +620,7 @@ export default function LibraryView({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 [grid-auto-rows:calc((100vw-40px)/2)] md:[grid-auto-rows:235px]">
               {localCollections.map(col => {
                 const colItems = collectionItems(col.id)
                 const cardCol = {
@@ -678,7 +672,7 @@ export default function LibraryView({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 [grid-auto-rows:calc((100vw-40px)/2)] md:[grid-auto-rows:235px]">
               {reads.map(item => (
                 <div key={item.id} className="relative rounded-lg overflow-hidden bg-stone-50 group">
                   <BookCard1x1 item={item} />
@@ -710,7 +704,7 @@ export default function LibraryView({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 [grid-auto-rows:calc((100vw-40px)/2)] md:[grid-auto-rows:235px]">
               {flicks.map(item => (
                 <div key={item.id} className="relative rounded-lg overflow-hidden bg-stone-50 group">
                   <MovieCard1x1 item={item} />
@@ -742,7 +736,7 @@ export default function LibraryView({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 [grid-auto-rows:calc((100vw-40px)/2)] md:[grid-auto-rows:235px]">
               {music.map(item => (
                 <div key={item.id} className="relative rounded-lg overflow-hidden bg-stone-50 group">
                   <MusicCard1x1 item={item} />
@@ -774,7 +768,7 @@ export default function LibraryView({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 [grid-auto-rows:calc((100vw-40px)/2)] md:[grid-auto-rows:235px]">
               {physicalItems.map(item => (
                 <div key={item.id} className="relative rounded-lg overflow-hidden bg-stone-50 group">
                   <ItemCard1x1 item={item} />
@@ -1165,7 +1159,7 @@ export default function LibraryView({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 auto-rows-[170px] sm:auto-rows-[235px]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 [grid-auto-rows:calc((100vw-40px)/2)] md:[grid-auto-rows:235px]">
               {photos.map(item => (
                 <div key={item.id} className="relative rounded-lg overflow-hidden bg-stone-50 group">
                   <PhotoCard item={item} />

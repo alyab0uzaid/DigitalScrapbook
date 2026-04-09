@@ -427,7 +427,7 @@ export default function ProfileGrid({
         onDragCancel={handleDragCancel}
       >
         <SortableContext items={widgets.map(w => w.id)} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 auto-rows-[155px] sm:auto-rows-[235px]">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 [grid-auto-rows:calc((100vw-40px)/2)] md:[grid-auto-rows:235px]">
             {widgets.map(widget => (
               <SortableWidgetCard
                 key={widget.id}

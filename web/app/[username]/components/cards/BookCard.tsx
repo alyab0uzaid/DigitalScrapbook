@@ -44,11 +44,10 @@ function BookCover({ src, alt, height, maxWidth }: { src: string; alt: string; h
 }
 
 // ── 1x1 ──────────────────────────────────────────────────────────────────────
-// Two-column grid, both items-end, pb-10 px-7 gap-6 — matches reference
 export function BookCard1x1({ item }: { item: Item }) {
   const author = item.metadata?.author as string | null
   return (
-    <div className="absolute inset-0 grid grid-cols-2 items-end gap-6 p-7">
+    <div className="absolute inset-0 grid grid-cols-2 items-end gap-3 p-4">
       {item.image_url && (
         <Image
           src={item.image_url}
@@ -62,7 +61,7 @@ export function BookCard1x1({ item }: { item: Item }) {
       )}
       <div>
         <StatusPill status={item.status} />
-        <p className="font-serif text-sm font-medium text-stone-900 leading-tight line-clamp-3 mt-1">{item.title}</p>
+        <p className="font-serif text-xs font-medium text-stone-900 leading-tight line-clamp-3 mt-1">{item.title}</p>
         {author && <p className="font-mono text-[9px] text-stone-400 mt-0.5">{author}</p>}
       </div>
     </div>

@@ -49,21 +49,18 @@ function Vinyl({ size }: { size: number }) {
 // ── 1x1 — album art with vinyl peeking out on hover ──────────────────────────
 export function MusicCard1x1({ item }: { item: Item }) {
   const artist = item.metadata?.artist as string | null
-  const size = 90
+  const size = 80
 
   return (
-    <div className="absolute inset-0 flex flex-col justify-end p-5 gap-3">
+    <div className="absolute inset-0 flex flex-col justify-end p-4 gap-2.5">
       {item.image_url && (
         <div className="relative" style={{ width: size, height: size }}>
-          {/* Vinyl — same size as cover, fully hidden behind it, slides right on hover */}
           <div
             className="absolute inset-0 transition-transform duration-300 ease-out group-hover:translate-x-[22%]"
             style={{ zIndex: 0 }}
           >
             <Vinyl size={size} />
           </div>
-
-          {/* Cover — on top */}
           <div className="absolute inset-0" style={{ zIndex: 1, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.18))' }}>
             <Image
               src={item.image_url}
@@ -79,7 +76,7 @@ export function MusicCard1x1({ item }: { item: Item }) {
       )}
       <div>
         <StatusPill status={item.status} />
-        <p className="font-serif text-sm font-medium text-stone-900 leading-tight line-clamp-2 mt-1">{item.title}</p>
+        <p className="font-serif text-xs font-medium text-stone-900 leading-tight line-clamp-2 mt-1">{item.title}</p>
         {artist && <p className="font-mono text-[9px] text-stone-400 mt-0.5">{artist}</p>}
       </div>
     </div>

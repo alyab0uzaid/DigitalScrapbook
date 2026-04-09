@@ -31,7 +31,7 @@ const coverShadow = 'drop-shadow(0 4px 12px rgba(0,0,0,0.18))'
 export function MovieCard1x1({ item }: { item: Item }) {
   const mediaType = item.metadata?.media_type as string | null
   return (
-    <div className="absolute inset-0 grid grid-cols-2 items-end gap-6 p-7">
+    <div className="absolute inset-0 grid grid-cols-2 items-end gap-3 p-4">
       {item.image_url && (
         <Image
           src={item.image_url}
@@ -45,7 +45,7 @@ export function MovieCard1x1({ item }: { item: Item }) {
       )}
       <div>
         <StatusPill status={item.status} />
-        <p className="font-serif text-sm font-medium text-stone-900 leading-tight line-clamp-3 mt-1">{item.title}</p>
+        <p className="font-serif text-xs font-medium text-stone-900 leading-tight line-clamp-3 mt-1">{item.title}</p>
         {mediaType && <p className="font-mono text-[9px] text-stone-400 mt-0.5 uppercase">{mediaType}</p>}
       </div>
     </div>

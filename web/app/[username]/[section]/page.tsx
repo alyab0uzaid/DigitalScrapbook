@@ -91,10 +91,9 @@ export default async function SectionPage({
 
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-20 sm:pb-10">
-        <div className="hidden sm:flex mb-8">
+        <div className="hidden sm:block sm:mb-8">
           <ProfileNav username={username} sections={navData.sections} collections={navData.collections} isOwner={isOwner} />
         </div>
-        <ProfileNav username={username} sections={navData.sections} collections={navData.collections} isOwner={isOwner} />
         <div className="mb-6 sm:mb-10">
           <h1 className="font-serif text-4xl sm:text-6xl font-light text-stone-900 leading-none">places</h1>
           <p className="font-serif text-sm text-stone-500 mt-3">
@@ -141,7 +140,7 @@ export default async function SectionPage({
   // ── Standard content page ─────────────────────────────────────────────────────
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-20 sm:pb-10">
-      <div className="mb-8">
+      <div className="sm:mb-8">
         <ProfileNav username={username} sections={navData.sections} collections={navData.collections} isOwner={isOwner} />
       </div>
       <div className="mb-6 sm:mb-10">
@@ -154,7 +153,7 @@ export default async function SectionPage({
       {count === 0 ? (
         <p className="font-serif text-lg text-stone-400">Nothing here yet.</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 auto-rows-[155px] sm:auto-rows-[235px]">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 [grid-auto-rows:calc((100vw-40px)/2)] md:[grid-auto-rows:235px]">
           {(items ?? []).map(item => (
             <ItemCard key={item.id} item={item} />
           ))}

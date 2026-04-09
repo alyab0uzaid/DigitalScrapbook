@@ -103,7 +103,7 @@ export default async function LibraryPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-5xl mx-auto px-6 py-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-20 sm:pb-10">
         <LibraryView
           items={items ?? []}
           collections={collections ?? []}

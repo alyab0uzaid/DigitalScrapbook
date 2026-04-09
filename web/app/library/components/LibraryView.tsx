@@ -520,7 +520,7 @@ export default function LibraryView({
   return (
     <>
       {/* Nav */}
-      <div className="flex mb-8">
+      <div className="hidden sm:flex mb-8">
         <ProfileNav
           username={username}
           sections={navSections}
@@ -528,11 +528,17 @@ export default function LibraryView({
           isOwner={true}
         />
       </div>
+      <ProfileNav
+        username={username}
+        sections={navSections}
+        collections={navCollections}
+        isOwner={true}
+      />
 
       {/* Header */}
       <div className="flex items-end justify-between mb-10">
         <div>
-          <h1 className="font-serif text-6xl font-light text-stone-900 leading-none">library</h1>
+          <h1 className="font-serif text-4xl sm:text-6xl font-light text-stone-900 leading-none">library</h1>
           <p className="font-serif text-sm text-stone-500 mt-3">
             {localItems.length} {localItems.length === 1 ? 'item' : 'items'} · {localCollections.length} {localCollections.length === 1 ? 'collection' : 'collections'}
           </p>

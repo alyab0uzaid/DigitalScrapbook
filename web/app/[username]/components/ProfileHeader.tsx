@@ -89,12 +89,12 @@ export default function ProfileHeader({ username, fullName, bio, avatarUrl, isOw
   }
 
   return (
-    <div className="mb-10">
-      <div className="flex items-start justify-between gap-4">
+    <div className="mb-6 sm:mb-10">
+      <div className="flex items-start justify-between gap-3">
         {/* Avatar + name */}
-        <div className="flex items-start gap-5 min-w-0">
+        <div className="flex items-start gap-3 sm:gap-5 min-w-0">
           <div className="relative shrink-0 group/avatar mt-1">
-            <div className="w-20 h-20 rounded-full bg-stone-200 flex items-center justify-center font-serif text-3xl text-stone-500 overflow-hidden">
+            <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-stone-200 flex items-center justify-center font-serif text-2xl sm:text-3xl text-stone-500 overflow-hidden">
               {avatarPreview
                 ? <img src={avatarPreview} alt={displayName} className="w-full h-full object-cover" />
                 : initials
@@ -120,10 +120,10 @@ export default function ProfileHeader({ username, fullName, bio, avatarUrl, isOw
                 value={localName}
                 onChange={e => setLocalName(e.target.value)}
                 placeholder={username}
-                className="font-serif text-6xl font-light text-stone-900 bg-stone-50 outline-none border-none w-full rounded px-1 -mx-1 placeholder:text-stone-300 leading-tight"
+                className="font-serif text-4xl sm:text-6xl font-light text-stone-900 bg-stone-50 outline-none border-none w-full rounded px-1 -mx-1 placeholder:text-stone-300 leading-tight"
               />
             ) : (
-              <h1 className="font-serif text-6xl font-light text-stone-900 leading-tight">
+              <h1 className="font-serif text-4xl sm:text-6xl font-light text-stone-900 leading-tight">
                 {displayName}
               </h1>
             )}

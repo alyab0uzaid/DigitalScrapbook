@@ -87,10 +87,10 @@ export default async function ProfilePage({
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-20 sm:pb-10">
 
-      {/* Nav */}
-      <div className="block mb-8">
+      {/* Nav — desktop pill (mobile bottom bar rendered by same component) */}
+      <div className="hidden sm:block mb-8">
         <ProfileNav
           username={profile.username}
           sections={navData.sections}
@@ -99,6 +99,13 @@ export default async function ProfilePage({
           currentUsername={currentUserProfile?.username ?? null}
         />
       </div>
+      <ProfileNav
+        username={profile.username}
+        sections={navData.sections}
+        collections={navData.collections}
+        isOwner={isOwner}
+        currentUsername={currentUserProfile?.username ?? null}
+      />
 
       <ProfilePageClient
         username={profile.username}
